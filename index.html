@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finley — Finance Internship Intelligence</title>
+<style>
+:root{
+  --bg:#0e1117;--surface:#161b27;--s2:#1e2536;--s3:#242b3d;
+  --border:#2a3045;--divider:#222840;
+  --gold:#c9a84c;--gold-lt:#f0d78a;--gold-dim:rgba(201,168,76,.14);--gold-mid:rgba(201,168,76,.25);
+  --text:#e8e6e0;--muted:#7a8299;--subtle:#3a4055;
+  --green:#2ecc71;--green-dim:rgba(46,204,113,.12);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,.12);
+  --red:#e74c3c;--red-dim:rgba(231,76,60,.12);
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;font-size:14px}
+a{color:var(--gold);text-decoration:none}
+a:hover{color:var(--gold-lt)}
+
+/* ── LOGIN ── */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.06) 0%,transparent 70%)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:380px;text-align:center}
+.login-logo{font-size:36px;font-weight:800;color:var(--gold);letter-spacing:-1px;margin-bottom:4px}
+.login-tag{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:32px}
+.login-card input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;outline:none;margin-bottom:12px}
+.login-card input:focus{border-color:var(--gold)}
+.btn-gold{background:var(--gold);color:#0e1117;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:.15s}
+.btn-gold:hover{background:var(--gold-lt)}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px}
+
+/* ── SHELL ── */
+#app{display:none;min-height:100vh}
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:4px;height:54px;position:sticky;top:0;z-index:100}
+.app-logo{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.5px;margin-right:24px}
+.nav-tab{font-size:13px;font-weight:500;color:var(--muted);padding:18px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.nav-count{font-size:11px;background:var(--gold-dim);color:var(--gold);border-radius:8px;padding:1px 6px;margin-left:4px}
+
+.app-body{padding:28px 32px;max-width:1280px;margin:0 auto}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:18px}
+.card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title-row .card-title{margin-bottom:0}
+
+/* ── GRID ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* ── FORMS ── */
+textarea,input[type=text],input[type=email],input[type=password],select{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;
+}
+textarea{width:100%;resize:vertical}
+input[type=text],input[type=email],input[type=password]{width:100%}
+textarea:focus,input:focus,select:focus{border-color:var(--gold)}
+select{cursor:pointer}
+.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+
+/* ── BUTTONS ── */
+.btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 18px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn-primary{background:var(--gold);color:#0e1117;border:none;font-weight:700}
+.btn-primary:hover{background:var(--gold-lt);color:#0e1117}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-ghost{background:transparent;border:1px solid var(--subtle);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-danger{border-color:var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--red-dim)}
+.btn[disabled]{opacity:.4;cursor:default;pointer-events:none}
+
+/* ── PILLS ── */
+.pill-group{display:flex;flex-wrap:wrap;gap:8px}
+.pill{padding:7px 16px;border-radius:20px;border:1px solid var(--border);font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+.pill:hover{border-color:var(--gold);color:var(--gold)}
+.pill.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:600}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-gold{background:var(--gold-dim);color:var(--gold)}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-blue{background:var(--blue-dim);color:var(--blue)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-gray{background:var(--s3);color:var(--muted)}
+
+/* ── PROSPECT CARDS ── */
+.prospect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.p-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.15s;cursor:default}
+.p-card:hover{border-color:var(--gold-mid)}
+.p-avatar{width:42px;height:42px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--gold);flex-shrink:0}
+.p-name{font-size:14px;font-weight:600;line-height:1.2}
+.p-role{font-size:12px;color:var(--muted);margin-top:2px}
+.p-loc{font-size:11px;color:var(--subtle);margin-top:3px}
+.p-divider{border:none;border-top:1px solid var(--divider);margin:12px 0}
+
+/* ── EMAIL BLOCKS ── */
+.email-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px}
+.email-block:hover{border-color:var(--border)}
+.email-to-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.email-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+
+/* ── TRACKER TABLE ── */
+.tracker-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;color:var(--muted);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--divider);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--s2)}
+
+/* ── CV ANALYSIS ── */
+.analysis-grid{background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.analysis-row{display:flex;gap:0;border-bottom:1px solid var(--divider);padding:10px 16px}
+.analysis-row:last-child{border-bottom:none}
+.analysis-key{font-size:12px;font-weight:600;color:var(--muted);min-width:160px;flex-shrink:0;padding-top:1px}
+.analysis-val{font-size:13px;color:var(--text);line-height:1.5}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:12px}
+.empty-label{font-size:14px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--divider);margin:20px 0}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.note-input{background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--muted);width:160px}
+.note-input:focus{border-bottom-color:var(--gold);outline:none}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:11px 20px;font-size:13px;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none}
+.housing-note{background:var(--green-dim);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);margin-top:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Finley</div>
+    <div class="login-tag">Finance Internship Intelligence</div>
+    <input type="password" id="pass-in" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-gold" onclick="doLogin()">Enter</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <div class="app-logo">Finley</div>
+    <div class="nav-tab active" data-tab="setup" onclick="switchTab('setup')">Setup</div>
+    <div class="nav-tab" data-tab="search" onclick="switchTab('search')">Search</div>
+    <div class="nav-tab" data-tab="prospects" onclick="switchTab('prospects')">Prospects<span class="nav-count" id="nc-prospects" style="display:none"></span></div>
+    <div class="nav-tab" data-tab="outreach" onclick="switchTab('outreach')">Outreach<span class="nav-count" id="nc-outreach" style="display:none"></span></div>
+    <div class="nav-tab" data-tab="tracker" onclick="switchTab('tracker')">Tracker<span class="nav-count" id="nc-tracker" style="display:none"></span></div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ── SETUP ── -->
+    <div class="tab-panel active" id="tab-setup">
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-title">Your CV / Resume</div>
+            <textarea id="cv-input" rows="16" placeholder="Paste your full CV here. The more detail the better — education, experience, skills, GPA, clubs, awards. Claude will analyze it and use it to personalize every outreach email."></textarea>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <button class="btn btn-primary" onclick="analyzeCV()">Analyze CV</button>
+              <div class="status-row" id="cv-status"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Your Details</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div class="field-label">Full Name</div>
+                <input type="text" id="user-name" value="Nigel Ellison">
+              </div>
+              <div>
+                <div class="field-label">Your Email Address</div>
+                <input type="email" id="user-email" placeholder="nigel@email.com">
+              </div>
+              <div>
+                <div class="field-label">LinkedIn Profile URL</div>
+                <input type="text" id="user-linkedin" placeholder="https://linkedin.com/in/yourprofile">
+              </div>
+              <button class="btn" style="align-self:flex-start" onclick="saveDetails()">Save Details</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="min-height:320px">
+            <div class="card-title">CV Analysis</div>
+            <div id="cv-analysis-panel">
+              <div class="empty-state" style="padding:30px 0">
+                <div class="empty-icon">📄</div>
+                <div class="empty-label" style="color:var(--muted)">Paste your CV and click Analyze</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">LinkedIn Connections Import</div>
+            <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">
+              Pull your personal network for finance contacts.<br>
+              <strong style="color:var(--text)">How to export:</strong> LinkedIn → Me → Settings & Privacy → Data Privacy → Get a copy of your data → Connections → Request archive. Paste the CSV below, or paste LinkedIn profile URLs one per line.
+            </p>
+            <textarea id="li-csv" rows="5" placeholder="Paste LinkedIn connections CSV or LinkedIn profile URLs here..."></textarea>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <button class="btn" onclick="importConnections()">Import</button>
+              <div class="status-row" id="li-status"></div>
+            </div>
+            <div id="connections-summary" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SEARCH ── -->
+    <div class="tab-panel" id="tab-search">
+      <div class="card">
+        <div class="card-title">Finance Field — select one or more</div>
+        <div class="pill-group" id="field-pills"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Location</div>
+        <div class="pill-group" id="location-pills"></div>
+        <div class="housing-note" style="margin-top:16px">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="checkbox" id="housing-filter" style="margin-top:2px;flex-shrink:0">
+            <span><strong>Housing aid / relocation stipend filter</strong> — only show firms known to provide housing assistance for interns (Goldman, Morgan Stanley, Blackstone, Citadel, KKR, Two Sigma, Jane Street, DE Shaw, Point72 and similar)</span>
+          </label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Search Mode — select one or more</div>
+        <div class="pill-group">
+          <div class="pill" id="mode-posted" onclick="toggleMode('posted',this)">Posted Internships</div>
+          <div class="pill" id="mode-unofficial" onclick="toggleMode('unofficial',this)">Unofficial Outreach</div>
+          <div class="pill" id="mode-connections" onclick="toggleMode('connections',this)">My LinkedIn Connections</div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6">
+          <strong style="color:var(--text)">Posted</strong> — listed internships from LinkedIn Jobs, Indeed, Glassdoor.<br>
+          <strong style="color:var(--text)">Unofficial</strong> — find analysts/associates at target firms and draft cold emails.<br>
+          <strong style="color:var(--text)">My LinkedIn Connections</strong> — search your imported connections for finance contacts.
+        </p>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <button class="btn btn-primary" style="padding:11px 32px;font-size:14px" onclick="runSearch()">Search</button>
+        <div class="status-row" id="search-status"></div>
+      </div>
+    </div>
+
+    <!-- ── PROSPECTS ── -->
+    <div class="tab-panel" id="tab-prospects">
+      <div id="prospects-panel">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-label">Run a search to find prospects</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OUTREACH ── -->
+    <div class="tab-panel" id="tab-outreach">
+      <div id="outreach-panel">
+        <div class="empty-state">
+          <div class="empty-icon">✉️</div>
+          <div class="empty-label">Click "Draft Email" on a prospect to generate a personalised email</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRACKER ── -->
+    <div class="tab-panel" id="tab-tracker">
+      <div class="card">
+        <div class="card-title-row">
+          <div class="card-title">Contact History</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
+            <button class="btn btn-sm btn-danger" onclick="clearTracker()">Clear All</button>
+          </div>
+        </div>
+        <div class="tracker-wrap" id="tracker-wrap">
+          <div class="empty-state" style="padding:40px 0">
+            <div class="empty-icon">📋</div>
+            <div class="empty-label">No contacts tracked yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+// ── CONSTANTS (loaded from config.js) ─────────────────────────────────
+// PASS, ANT_KEY, RAPIDAPI_KEY are defined in config.js
+
+const FINANCE_FIELDS = [
+  'Investment Banking','Private Equity','Hedge Fund','Asset Management',
+  'Venture Capital','Wealth Management','Corporate Finance',
+  'Financial Planning & Analysis','Risk Management','Trading & Markets',
+  'Equity Research','Real Estate Finance',
+];
+
+const LOCATIONS = [
+  { label:'Remote',        val:'remote' },
+  { label:'Dallas, TX',    val:'Dallas Texas' },
+  { label:'Frisco, TX',    val:'Frisco Texas' },
+  { label:'Plano, TX',     val:'Plano Texas' },
+  { label:'New York, NY',  val:'New York' },
+  { label:'Houston, TX',   val:'Houston Texas' },
+  { label:'Chicago, IL',   val:'Chicago Illinois' },
+  { label:'Charlotte, NC', val:'Charlotte North Carolina' },
+  { label:'Boston, MA',    val:'Boston Massachusetts' },
+  { label:'Austin, TX',    val:'Austin Texas' },
+];
+
+const HOUSING_FIRMS = [
+  'goldman sachs','morgan stanley','jpmorgan','jp morgan','bank of america',
+  'blackstone','kkr','apollo','citadel','two sigma','jane street','de shaw',
+  'd.e. shaw','bridgewater','point72','millennium','blackrock','vanguard',
+  'fidelity','t. rowe price','carlyle','warburg pincus','bain capital',
+  'tiger global','coatue','hudson river','virtu','susquehanna','sac capital',
+];
+
+// ── STATE ──────────────────────────────────────────────────────────────
+let selectedFields    = [];
+let selectedLocations = [];
+let selectedModes     = [];
+let searchResults     = [];
+let contacts          = JSON.parse(localStorage.getItem('finley_contacts') || '[]');
+let cvAnalysis        = JSON.parse(localStorage.getItem('finley_cv_analysis') || 'null');
+let liConnections     = JSON.parse(localStorage.getItem('finley_connections') || '[]');
+let drafts            = JSON.parse(localStorage.getItem('finley_drafts') || '{}');
+
+// ── AUTH ───────────────────────────────────────────────────────────────
+document.getElementById('pass-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+function doLogin(){
+  if(document.getElementById('pass-in').value === PASS){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('login-err').textContent = 'Incorrect password.';
+  }
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────
+function init(){
+  buildFieldPills();
+  buildLocationPills();
+  loadStored();
+  renderTracker();
+  renderOutreach();
+  updateCounts();
+}
+
+function loadStored(){
+  const cv = localStorage.getItem('finley_cv');
+  if(cv) document.getElementById('cv-input').value = cv;
+  if(cvAnalysis) renderCVAnalysis(cvAnalysis);
+  const email = localStorage.getItem('finley_email');
+  const li    = localStorage.getItem('finley_linkedin');
+  if(email) document.getElementById('user-email').value = email;
+  if(li)    document.getElementById('user-linkedin').value = li;
+  if(liConnections.length){
+    document.getElementById('li-status').innerHTML = `<span>${liConnections.length} connections loaded</span>`;
+  }
+}
+
+// ── PILLS ──────────────────────────────────────────────────────────────
+function buildFieldPills(){
+  document.getElementById('field-pills').innerHTML = FINANCE_FIELDS.map(f =>
+    `<div class="pill" onclick="toggleField(this,'${f}')">${f}</div>`
+  ).join('');
+}
+function buildLocationPills(){
+  document.getElementById('location-pills').innerHTML = LOCATIONS.map(l =>
+    `<div class="pill" onclick="toggleLocation(this,'${l.label}')">${l.label}</div>`
+  ).join('');
+}
+function toggleField(el, val){ toggleSel(selectedFields, val, el); }
+function toggleLocation(el, val){ toggleSel(selectedLocations, val, el); }
+function toggleMode(val, el){ toggleSel(selectedModes, val, el); }
+function toggleSel(arr, val, el){
+  const i = arr.indexOf(val);
+  if(i===-1){ arr.push(val); el.classList.add('on'); }
+  else { arr.splice(i,1); el.classList.remove('on'); }
+}
+
+// ── SAVE DETAILS ───────────────────────────────────────────────────────
+function saveDetails(){
+  localStorage.setItem('finley_email',    document.getElementById('user-email').value.trim());
+  localStorage.setItem('finley_linkedin', document.getElementById('user-linkedin').value.trim());
+  localStorage.setItem('finley_name',     document.getElementById('user-name').value.trim());
+  toast('Details saved');
+}
+
+// ── CV ANALYSIS ────────────────────────────────────────────────────────
+async function analyzeCV(){
+  const cv = document.getElementById('cv-input').value.trim();
+  if(!cv) return toast('Paste your CV first');
+  localStorage.setItem('finley_cv', cv);
+  const el = document.getElementById('cv-status');
+  el.innerHTML = '<span class="spinner"></span><span>Analyzing...</span>';
+  try {
+    const res = await claude(`Analyze this CV for a finance internship applicant. Return ONLY valid JSON, no markdown, no explanation.
+{
+  "name": "candidate full name",
+  "education": "school, degree, graduation year, GPA if listed",
+  "relevant_experience": "2-3 sentence summary of most finance-relevant experience",
+  "skills": "finance-relevant skills: software (Excel, Bloomberg, Python etc), techniques, certifications",
+  "achievements": "standout items: GPA, clubs, case competitions, scholarships",
+  "profile_tone": "one word: analytical / entrepreneurial / quantitative / client-facing / etc",
+  "best_pitch": "one punchy sentence selling this candidate for a finance internship"
+}
+CV:
+${cv}`);
+    let parsed;
+    try {
+      const m = res.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(m ? m[0] : res);
+    } catch { parsed = { best_pitch: res }; }
+    cvAnalysis = parsed;
+    localStorage.setItem('finley_cv_analysis', JSON.stringify(parsed));
+    renderCVAnalysis(parsed);
+    el.innerHTML = '<span style="color:var(--green)">✓ Analyzed</span>';
+  } catch(e){
+    el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
+  }
+}
+
+function renderCVAnalysis(a){
+  const rows = [
+    ['Name',             a.name],
+    ['Education',        a.education],
+    ['Experience',       a.relevant_experience],
+    ['Skills',           a.skills],
+    ['Achievements',     a.achievements],
+    ['Profile Tone',     a.profile_tone],
+    ['Best Pitch',       a.best_pitch],
+  ].filter(([,v]) => v);
+  document.getElementById('cv-analysis-panel').innerHTML =
+    `<div class="analysis-grid">${rows.map(([k,v])=>
+      `<div class="analysis-row"><div class="analysis-key">${k}</div><div class="analysis-val">${v}</div></div>`
+    ).join('')}</div>`;
+}
+
+// ── LINKEDIN CONNECTIONS IMPORT ─────────────────────────────────────────
+function importConnections(){
+  const raw = document.getElementById('li-csv').value.trim();
+  if(!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  let parsed = [];
+
+  if(lines[0] && lines[0].includes(',')){
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
+    const fi  = headers.findIndex(h => h.includes('first'));
+    const li2 = headers.findIndex(h => h.includes('last'));
+    const co  = headers.findIndex(h => h.includes('company'));
+    const po  = headers.findIndex(h => h.includes('position') || h.includes('title'));
+    const ur  = headers.findIndex(h => h.includes('url'));
+    const em  = headers.findIndex(h => h.includes('email'));
+    for(let i=1;i<lines.length;i++){
+      const c = lines[i].split(',').map(x => x.replace(/"/g,'').trim());
+      parsed.push({
+        name:     ((fi>=0?c[fi]:'') + ' ' + (li2>=0?c[li2]:'')).trim() || c[0] || '',
+        company:  co>=0 ? c[co] : '',
+        position: po>=0 ? c[po] : '',
+        url:      ur>=0 ? c[ur] : '',
+        email:    em>=0 ? c[em] : '',
+        source:   'import',
+      });
+    }
+  } else {
+    parsed = lines.map(l => ({
+      name:   l.startsWith('http') ? l.replace(/.*\/in\//,'').replace(/\//,'').replace(/-/g,' ') : l,
+      url:    l.startsWith('http') ? l : '',
+      source: 'import',
+    }));
+  }
+
+  liConnections = parsed.filter(p => p.name.length > 1);
+  localStorage.setItem('finley_connections', JSON.stringify(liConnections));
+
+  const kwds = ['finance','banking','investment','capital','asset','equity','fund','trading','wealth','financial','analyst','associate','portfolio','hedge','venture','advisor','broker'];
+  const relevant = liConnections.filter(c => kwds.some(k => (c.position+' '+c.company).toLowerCase().includes(k)));
+
+  document.getElementById('li-status').innerHTML = `<span style="color:var(--green)">✓ ${liConnections.length} imported</span>`;
+  document.getElementById('connections-summary').innerHTML =
+    `<div style="font-size:12px;color:var(--muted)">${liConnections.length} total · <span style="color:var(--gold)">${relevant.length} appear to be in finance</span></div>`;
+}
+
+// ── SEARCH ─────────────────────────────────────────────────────────────
+async function runSearch(){
+  if(!selectedFields.length) return toast('Select at least one finance field');
+  if(!selectedLocations.length) return toast('Select at least one location');
+
+  const el = document.getElementById('search-status');
+  el.innerHTML = '<span class="spinner"></span><span>Searching...</span>';
+  searchResults = [];
+  const housingOnly = document.getElementById('housing-filter').checked;
+
+  try {
+    // My LinkedIn Connections mode
+    if(selectedModes.includes('connections') && liConnections.length){
+      const kws = selectedFields.map(f => f.toLowerCase().split(' ')[0]);
+      liConnections.filter(c => kws.some(k => (c.position+' '+c.company).toLowerCase().includes(k)))
+        .forEach(c => searchResults.push({...c, type:'connection', field:selectedFields[0] || 'Finance', badges:['Your Connection']}));
+    }
+
+    // Unofficial outreach — LinkedIn people search
+    if(selectedModes.includes('unofficial') || selectedModes.length === 0){
+      for(const field of selectedFields.slice(0,3)){
+        for(const loc of selectedLocations.slice(0,3)){
+          const locObj = LOCATIONS.find(l => l.label === loc);
+          const locVal = locObj ? locObj.val : loc;
+          const isRemote = locVal === 'remote';
+          try {
+            const people = await searchLinkedInPeople(field, isRemote ? '' : locVal);
+            people.forEach(p => {
+              const hasHousing = HOUSING_FIRMS.some(f => (p.company||'').toLowerCase().includes(f));
+              if(housingOnly && !hasHousing) return;
+              searchResults.push({...p, type:'unofficial', field, location:loc,
+                badges:[...(hasHousing?['Housing Aid']:[])]});
+            });
+          } catch(e){ console.warn('LinkedIn search failed', e); }
+        }
+      }
+    }
+
+    // Posted jobs
+    if(selectedModes.includes('posted')){
+      for(const field of selectedFields.slice(0,2)){
+        for(const loc of selectedLocations.slice(0,2)){
+          const locObj = LOCATIONS.find(l => l.label === loc);
+          const locVal = locObj ? locObj.val : loc;
+          try {
+            const jobs = await searchJobs(field, locVal);
+            jobs.forEach(j => {
+              const hasHousing = HOUSING_FIRMS.some(f => (j.company||'').toLowerCase().includes(f));
+              if(housingOnly && !hasHousing) return;
+              searchResults.push({...j, type:'job', field, location:loc,
+                badges:['Posted Job',...(hasHousing?['Housing Aid']:[])]});
+            });
+          } catch(e){ console.warn('Job search failed', e); }
+        }
+      }
+    }
+
+    // Deduplicate
+    const seen = new Set();
+    searchResults = searchResults.filter(r => {
+      const k = (r.name+r.company).toLowerCase().trim();
+      if(!k || seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+
+    el.innerHTML = `<span style="color:var(--green)">✓ ${searchResults.length} prospects found</span>`;
+    renderProspects();
+    updateCounts();
+    switchTab('prospects');
+  } catch(e){
+    el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
+  }
+}
+
+async function searchLinkedInPeople(field, location){
+  const q = `${field} analyst associate intern${location ? ' ' + location : ''}`;
+  const params = new URLSearchParams({ keywords: q, page: '1' });
+  if(location) params.append('geo', location);
+  const r = await fetch(`https://linkedin-api8.p.rapidapi.com/search-people?${params}`, {
+    headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  const d = await r.json();
+  const items = d.items || d.results || d.data || [];
+  return items.slice(0,8).map(p => ({
+    name:    (p.fullName || p.name || ((p.firstName||'') + ' ' + (p.lastName||''))).trim() || 'Unknown',
+    position:p.headline || p.currentPositionText || p.title || '',
+    company: p.currentCompany?.name || p.company || '',
+    location:p.location || '',
+    url:     p.profileURL || (p.username ? `https://linkedin.com/in/${p.username}` : ''),
+    avatar:  p.profilePicture || '',
+  }));
+}
+
+async function searchJobs(field, location){
+  const isRemote = location === 'remote';
+  const params = new URLSearchParams({
+    query: `${field} internship`,
+    location: isRemote ? 'United States' : location,
+    employment_types: 'INTERN',
+    remote_jobs_only: isRemote ? 'true' : 'false',
+    page: '1',
+  });
+  const r = await fetch(`https://jsearch.p.rapidapi.com/search?${params}`, {
+    headers:{ 'x-rapidapi-host':'jsearch.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  const d = await r.json();
+  return (d.data||[]).slice(0,8).map(j => ({
+    name:    j.employer_name || 'Company',
+    position:j.job_title || '',
+    company: j.employer_name || '',
+    location:j.job_city ? `${j.job_city}, ${j.job_state||''}` : '',
+    url:     j.job_apply_link || '',
+    isJob:   true,
+    remote:  j.job_is_remote,
+  }));
+}
+
+// ── PROSPECTS ─────────────────────────────────────────────────────────
+function renderProspects(){
+  const panel = document.getElementById('prospects-panel');
+  if(!searchResults.length){
+    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-label">No results — adjust your search</div></div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="prospect-grid">${searchResults.map((p,i) => {
+    const initials = p.name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
+    const draftKey = dKey(p);
+    const hasDraft = !!drafts[draftKey];
+    const contact  = contacts.find(c => c.name===p.name && c.company===p.company);
+    const status   = contact?.status || '';
+    return `<div class="p-card">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <div class="p-avatar">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="p-name">${p.name}</div>
+          <div class="p-role">${p.position||''}${p.company?' · '+p.company:''}</div>
+          ${p.location?`<div class="p-loc">${p.location}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
+        <span class="badge badge-gold">${p.field||'Finance'}</span>
+        ${(p.badges||[]).map(b=>
+          b==='Your Connection'?`<span class="badge badge-blue">${b}</span>`:
+          b==='Housing Aid'?`<span class="badge badge-green">${b}</span>`:
+          b==='Posted Job'?`<span class="badge badge-gray">${b}</span>`:
+          `<span class="badge badge-gray">${b}</span>`
+        ).join('')}
+        ${hasDraft?'<span class="badge badge-gold">Draft ready</span>':''}
+        ${status?`<span class="badge ${statusBadgeClass(status)}">${status}</span>`:''}
+      </div>
+      ${p.url?`<div style="margin-bottom:12px;font-size:12px"><a href="${p.url}" target="_blank">View LinkedIn ↗</a></div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm ${hasDraft?'':'btn-primary'}" onclick="draftEmail(${i})">${hasDraft?'Regenerate':'Draft Email'}</button>
+        ${hasDraft?`<button class="btn btn-sm" onclick="switchTab('outreach')">View Draft</button>`:''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── EMAIL DRAFTING ─────────────────────────────────────────────────────
+function dKey(p){ return (p.name+'||'+p.company).toLowerCase(); }
+
+async function draftEmail(idx){
+  const p = searchResults[idx];
+  if(!p) return;
+  if(!cvAnalysis) return toast('Analyze your CV first in the Setup tab');
+
+  const name  = localStorage.getItem('finley_name')     || 'Nigel Ellison';
+  const email = localStorage.getItem('finley_email')    || '';
+  const liUrl = localStorage.getItem('finley_linkedin') || '';
+
+  toast('Drafting your email...');
+
+  try {
+    const prompt = `You are writing a professional cold outreach email for a finance internship.
+
+SENDER — the applicant:
+Name: ${name}
+Email: ${email}
+LinkedIn: ${liUrl}
+CV analysis: ${JSON.stringify(cvAnalysis, null, 2)}
+
+RECIPIENT:
+Name: ${p.name}
+Title: ${p.position || 'Finance Professional'}
+Company: ${p.company || 'the firm'}
+Field: ${p.field || 'Finance'}
+Location: ${p.location || ''}
+Type: ${p.isJob ? 'Posted internship role — apply directly' : 'Unofficial cold outreach — no role posted'}
+${p.type==='connection'?'NOTE: This person is already a LinkedIn connection — tone can be slightly warmer.':''}
+
+Instructions:
+- 150–180 words max
+- Open with something specific about them or their firm (not a generic opener)
+- Mention ONE skill or achievement from the CV most relevant to their field
+- If unofficial: ask for a 15-minute exploratory call, not "do you have internships"
+- If posted job: express specific interest in the role and firm
+- Sound like a real, smart person — not corporate fluff
+- Close with a clear, low-friction ask
+
+Return ONLY this JSON, no markdown:
+{
+  "subject": "email subject line",
+  "body": "full email body only, no subject in body, sign off with ${name}"
+}`;
+
+    const res = await claude(prompt);
+    let draft;
+    try {
+      const m = res.match(/\{[\s\S]*\}/);
+      draft = JSON.parse(m ? m[0] : res);
+    } catch {
+      draft = { subject:`Finance Inquiry — ${name}`, body: res };
+    }
+
+    const key = dKey(p);
+    drafts[key] = { ...draft, prospect: p, timestamp: Date.now() };
+    localStorage.setItem('finley_drafts', JSON.stringify(drafts));
+
+    // Track contact
+    if(!contacts.find(c => c.name===p.name && c.company===p.company)){
+      contacts.push({
+        id: Date.now(), name:p.name, company:p.company||'', position:p.position||'',
+        field:p.field||'', location:p.location||'', url:p.url||'',
+        status:'drafted', dateAdded:today(), dateSent:'', notes:'',
+      });
+      saveContacts();
+    }
+
+    renderProspects();
+    renderOutreach();
+    renderTracker();
+    updateCounts();
+    toast('Email drafted — review in Outreach tab');
+  } catch(e){
+    toast('Error drafting: ' + e.message);
+  }
+}
+
+// ── OUTREACH ──────────────────────────────────────────────────────────
+function renderOutreach(){
+  const panel  = document.getElementById('outreach-panel');
+  const entries = Object.entries(drafts);
+  if(!entries.length){
+    panel.innerHTML = `<div class="empty-state"><div class="empty-icon">✉️</div><div class="empty-label">Click "Draft Email" on a prospect to generate a personalised email</div></div>`;
+    return;
+  }
+  const userName = localStorage.getItem('finley_name') || 'Nigel Ellison';
+  panel.innerHTML = entries.sort((a,b) => b[1].timestamp-a[1].timestamp).map(([key, d]) => {
+    const p       = d.prospect || {};
+    const contact = contacts.find(c => c.name===p.name && c.company===p.company);
+    const status  = contact?.status || 'drafted';
+    const mailSub = encodeURIComponent(d.subject || `Finance Internship Inquiry — ${userName}`);
+    const mailBod = encodeURIComponent((d.body || '') + `\n\nBest regards,\n${userName}`);
+    const mailto  = `mailto:${p.email||''}?subject=${mailSub}&body=${mailBod}`;
+    return `<div class="email-block" id="eb-${btoa(key).replace(/=/g,'')}">
+      <div class="email-to-header">
+        <div>
+          <div style="font-size:15px;font-weight:600">${p.name||'Unknown'}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.position||''} · ${p.company||''} ${p.location?'· '+p.location:''}</div>
+        </div>
+        <span class="badge ${statusBadgeClass(status)}">${status}</span>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="field-label" style="margin-bottom:6px">Subject</div>
+        <input type="text" value="${esc(d.subject||'')}"
+          oninput="saveDraftField('${key}','subject',this.value)">
+      </div>
+      <div>
+        <div class="field-label" style="margin-bottom:6px">Email Body — edit freely before sending</div>
+        <textarea rows="10" oninput="saveDraftField('${key}','body',this.value)">${esc(d.body||'')}</textarea>
+      </div>
+      <div class="email-actions">
+        <a class="btn btn-primary" href="${mailto}" onclick="setTimeout(()=>markSent('${key}'),500)">Open in Email App</a>
+        <button class="btn btn-sm" onclick="markSent('${key}')">Mark Sent</button>
+        <select style="font-size:12px;padding:6px 10px" onchange="setStatus('${key}',this.value)">
+          <option value="drafted" ${status==='drafted'?'selected':''}>Drafted</option>
+          <option value="sent" ${status==='sent'?'selected':''}>Sent</option>
+          <option value="replied" ${status==='replied'?'selected':''}>Replied</option>
+          <option value="no-response" ${status==='no-response'?'selected':''}>No Response</option>
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="deleteDraft('${key}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function saveDraftField(key, field, val){
+  if(drafts[key]){ drafts[key][field]=val; localStorage.setItem('finley_drafts',JSON.stringify(drafts)); }
+}
+
+function markSent(key){
+  setStatus(key,'sent');
+  renderOutreach();
+}
+
+function setStatus(key, status){
+  const d = drafts[key];
+  if(!d) return;
+  const c = contacts.find(c => c.name===d.prospect?.name && c.company===d.prospect?.company);
+  if(c){ c.status=status; if(status==='sent') c.dateSent=today(); saveContacts(); }
+  renderTracker();
+  updateCounts();
+}
+
+function deleteDraft(key){
+  if(!confirm('Delete this draft?')) return;
+  delete drafts[key];
+  localStorage.setItem('finley_drafts',JSON.stringify(drafts));
+  renderOutreach();
+  updateCounts();
+}
+
+// ── TRACKER ───────────────────────────────────────────────────────────
+function renderTracker(){
+  const wrap = document.getElementById('tracker-wrap');
+  if(!contacts.length){
+    wrap.innerHTML = `<div class="empty-state" style="padding:40px 0"><div class="empty-icon">📋</div><div class="empty-label">No contacts tracked yet</div></div>`;
+    return;
+  }
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>Name</th><th>Company</th><th>Field</th><th>Location</th>
+      <th>Status</th><th>Added</th><th>Sent</th><th>Notes</th><th></th>
+    </tr></thead>
+    <tbody>${contacts.map((c,i)=>`<tr>
+      <td>${c.url?`<a href="${c.url}" target="_blank">${c.name}</a>`:c.name}</td>
+      <td>${c.company||'—'}</td>
+      <td>${c.field||'—'}</td>
+      <td>${c.location||'—'}</td>
+      <td><span class="badge ${statusBadgeClass(c.status)}">${c.status}</span></td>
+      <td style="color:var(--muted)">${c.dateAdded||'—'}</td>
+      <td style="color:var(--muted)">${c.dateSent||'—'}</td>
+      <td><input class="note-input" value="${esc(c.notes||'')}" placeholder="Add note..."
+        onblur="updateNote(${i},this.value)"></td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeContact(${i})">✕</button></td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function updateNote(i, val){ contacts[i].notes=val; saveContacts(); }
+function removeContact(i){ contacts.splice(i,1); saveContacts(); renderTracker(); updateCounts(); }
+function saveContacts(){ localStorage.setItem('finley_contacts',JSON.stringify(contacts)); }
+function clearTracker(){ if(confirm('Clear all contacts?')){ contacts=[]; saveContacts(); renderTracker(); updateCounts(); } }
+
+function exportCSV(){
+  const h = ['Name','Company','Field','Location','Status','Date Added','Date Sent','LinkedIn','Notes'];
+  const r = contacts.map(c=>[c.name,c.company,c.field,c.location,c.status,c.dateAdded,c.dateSent,c.url,c.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
+  const csv = [h,...r].map(x=>x.join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'),{
+    href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})),
+    download:'finley-contacts.csv',
+  });
+  a.click();
+}
+
+// ── CLAUDE ────────────────────────────────────────────────────────────
+async function claude(prompt){
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'x-api-key':ANT_KEY,
+      'anthropic-version':'2023-06-01',
+      'content-type':'application/json',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body:JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1024, messages:[{role:'user',content:prompt}] }),
+  });
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.content[0].text;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector(`.nav-tab[data-tab="${tab}"]`)?.classList.add('active');
+}
+
+function updateCounts(){
+  const nc = (id, n) => {
+    const el = document.getElementById(id);
+    el.textContent = n;
+    el.style.display = n ? 'inline' : 'none';
+  };
+  nc('nc-prospects', searchResults.length);
+  nc('nc-outreach',  Object.keys(drafts).length);
+  nc('nc-tracker',   contacts.length);
+}
+
+function statusBadgeClass(s){
+  return {drafted:'badge-gold',sent:'badge-green',replied:'badge-blue','no-response':'badge-red'}[s]||'badge-gray';
+}
+
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+let _tt;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity='1';
+  clearTimeout(_tt);
+  _tt = setTimeout(()=>{ el.style.opacity='0'; }, 3000);
+}
+</script>
+</body>
+</html>
