@@ -338,8 +338,11 @@ tr:hover td{background:var(--s2)}
         </div>
       </div>
 
-      <div id="setup-complete-banner" style="display:none" class="housing-note" style="margin-top:4px">
-        ✓ Setup complete — all tabs are now unlocked. Head to Search to find your first prospects.
+      <div id="setup-complete-banner" style="display:none;margin-top:4px">
+        <div class="housing-note" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <span>✓ Setup complete — all tabs are unlocked.</span>
+          <button class="btn btn-primary" onclick="switchTab('search')">Go to Search →</button>
+        </div>
       </div>
     </div>
 
@@ -529,9 +532,9 @@ function loadStored(){
   if(hometown) document.getElementById('user-hometown').value = hometown;
 
   if(liConnections.length){
-    document.getElementById('li-status').innerHTML = `<span style="color:var(--green)">✓ ${liConnections.length} connections loaded</span>`;
-    updateAccordion('acc-connections', true, `${liConnections.length} connections`);
     setupStep.connections = true;
+    updateAccordion('acc-connections', true, `${liConnections.length} connections`);
+    renderConnectionsList();
   }
   if(cvAnalysis) updateAccordion('acc-cv', true, 'Analyzed ✓');
   if(email)      updateAccordion('acc-details', true, 'Saved ✓');
@@ -796,105 +799,127 @@ async function runSearch(){
   if(!selectedFields.length) return toast('Select at least one finance field');
   if(!selectedLocations.length) return toast('Select at least one location');
   const el = document.getElementById('search-status');
-  el.innerHTML = '<span class="spinner"></span><span>Searching...</span>';
   searchResults = [];
   const housingOnly = document.getElementById('housing-filter').checked;
   const hometown    = localStorage.getItem('finley_hometown') || '';
+  // default: run all modes unless user explicitly picked specific ones
+  const runPosted      = !selectedModes.length || selectedModes.includes('posted');
+  const runUnofficial  = !selectedModes.length || selectedModes.includes('unofficial');
+  const runConnections = selectedModes.includes('connections');
+  let errors = [];
 
-  try {
-    if(selectedModes.includes('connections') && liConnections.length){
-      const kws = selectedFields.map(f => f.toLowerCase().split(' ')[0]);
-      liConnections.filter(c => kws.some(k => (c.position+' '+c.company).toLowerCase().includes(k)))
-        .forEach(c => searchResults.push({...c, type:'connection', field:selectedFields[0]||'Finance', badges:['Your Connection']}));
-    }
+  const addProspect = (p, field, loc, extraBadges=[]) => {
+    const hasHousing = HOUSING_FIRMS.some(f => (p.company||'').toLowerCase().includes(f));
+    const homePart   = hometown.toLowerCase().split(',')[0].trim();
+    const needsReloc = hometown && loc !== 'Remote' && !loc.toLowerCase().includes(homePart);
+    if(housingOnly && !hasHousing) return;
+    searchResults.push({...p, field, location:loc,
+      badges:[...extraBadges,...(hasHousing?['Housing Aid']:[]),...(needsReloc?['Relocation Needed']:[])]});
+  };
 
-    if(selectedModes.includes('unofficial') || selectedModes.length===0){
-      for(const field of selectedFields.slice(0,3)){
-        for(const loc of selectedLocations.slice(0,3)){
-          const locObj  = LOCATIONS.find(l => l.label===loc);
-          const locVal  = locObj ? locObj.val : loc;
-          const isRemote= locVal==='remote';
-          try {
-            const people = await searchLinkedInPeople(field, isRemote?'':locVal);
-            people.forEach(p => {
-              const hasHousing = HOUSING_FIRMS.some(f => (p.company||'').toLowerCase().includes(f));
-              const needsReloc = hometown && loc!=='Remote' && !loc.toLowerCase().includes(hometown.toLowerCase().split(',')[0]);
-              if(housingOnly && !hasHousing) return;
-              searchResults.push({...p, type:'unofficial', field, location:loc,
-                badges:[...(hasHousing?['Housing Aid']:[]),...(needsReloc?['Relocation Needed']:[])]});
-            });
-          } catch(e){ console.warn('LinkedIn search error',e); }
-        }
-      }
-    }
-
-    if(selectedModes.includes('posted')){
-      for(const field of selectedFields.slice(0,2)){
-        for(const loc of selectedLocations.slice(0,2)){
-          const locObj = LOCATIONS.find(l => l.label===loc);
-          const locVal = locObj ? locObj.val : loc;
-          try {
-            const jobs = await searchJobs(field, locVal);
-            jobs.forEach(j => {
-              const hasHousing = HOUSING_FIRMS.some(f => (j.company||'').toLowerCase().includes(f));
-              const needsReloc = hometown && loc!=='Remote' && !loc.toLowerCase().includes(hometown.toLowerCase().split(',')[0]);
-              if(housingOnly && !hasHousing) return;
-              searchResults.push({...j, type:'job', field, location:loc,
-                badges:['Posted Job',...(hasHousing?['Housing Aid']:[]),...(needsReloc?['Relocation Needed']:[])]});
-            });
-          } catch(e){ console.warn('Job search error',e); }
-        }
-      }
-    }
-
-    const seen = new Set();
-    searchResults = searchResults.filter(r => {
-      const k=(r.name+r.company).toLowerCase().trim();
-      if(!k||seen.has(k)) return false;
-      seen.add(k); return true;
-    });
-
-    el.innerHTML = `<span style="color:var(--green)">✓ ${searchResults.length} prospects found</span>`;
-    renderProspects();
-    updateCounts();
-    switchTab('prospects');
-  } catch(e){
-    el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
+  // My connections (instant, no API)
+  if(runConnections && liConnections.length){
+    const kws = selectedFields.map(f => f.toLowerCase().split(' ')[0]);
+    liConnections
+      .filter(c => kws.some(k => (c.position+' '+c.company).toLowerCase().includes(k)))
+      .forEach(c => addProspect({...c, type:'connection'}, selectedFields[0]||'Finance', selectedLocations[0]||'', ['Your Connection']));
   }
-}
 
-async function searchLinkedInPeople(field, location){
-  const q = `${field} analyst associate intern${location?' '+location:''}`;
-  const params = new URLSearchParams({ keywords:q, page:'1' });
-  if(location) params.append('geo', location);
-  const r = await fetch(`https://linkedin-api8.p.rapidapi.com/search-people?${params}`, {
-    headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  const fields = selectedFields.slice(0,3);
+  const locs   = selectedLocations.slice(0,3);
+
+  // Posted jobs (JSearch)
+  if(runPosted){
+    el.innerHTML = '<span class="spinner"></span><span>Finding posted internships...</span>';
+    for(const field of fields){
+      for(const loc of locs){
+        const locObj = LOCATIONS.find(l => l.label===loc);
+        const locVal = locObj ? locObj.val : loc;
+        try {
+          const jobs = await searchJobs(field, locVal);
+          jobs.forEach(j => addProspect({...j, type:'job'}, field, loc, ['Posted Job']));
+        } catch(e){ errors.push(`Jobs (${field}/${loc}): ${e.message}`); }
+      }
+    }
+  }
+
+  // Unofficial — LinkedIn people search
+  if(runUnofficial){
+    el.innerHTML = '<span class="spinner"></span><span>Finding people to reach out to...</span>';
+    for(const field of fields){
+      for(const loc of locs){
+        const locObj  = LOCATIONS.find(l => l.label===loc);
+        const locVal  = locObj ? locObj.val : loc;
+        const isRemote = locVal === 'remote';
+        try {
+          const people = await searchLinkedInPeople(field, isRemote ? '' : locVal);
+          people.forEach(p => addProspect({...p, type:'unofficial'}, field, loc, []));
+        } catch(e){ errors.push(`LinkedIn (${field}/${loc}): ${e.message}`); }
+      }
+    }
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  searchResults = searchResults.filter(r => {
+    const k = (r.name+'||'+r.company).toLowerCase().trim();
+    if(!k || seen.has(k)) return false;
+    seen.add(k); return true;
   });
-  const d = await r.json();
-  return (d.items||d.results||d.data||[]).slice(0,8).map(p => ({
-    name:    (p.fullName||p.name||((p.firstName||'')+' '+(p.lastName||''))).trim()||'Unknown',
-    position:p.headline||p.currentPositionText||p.title||'',
-    company: p.currentCompany?.name||p.company||'',
-    location:p.location||'',
-    url:     p.profileURL||(p.username?`https://linkedin.com/in/${p.username}`:''),
-  }));
+
+  if(searchResults.length){
+    el.innerHTML = `<span style="color:var(--green)">✓ ${searchResults.length} prospects found</span>`;
+    if(errors.length) el.innerHTML += ` <span style="color:var(--amber);font-size:11px">(${errors.length} source${errors.length>1?'s':''} had errors)</span>`;
+  } else {
+    const errDetail = errors.length ? ` API errors: ${errors.slice(0,2).join('; ')}` : '';
+    el.innerHTML = `<span style="color:var(--red)">No results found.${errDetail}</span>`;
+  }
+  renderProspects();
+  updateCounts();
+  if(searchResults.length) switchTab('prospects');
 }
 
 async function searchJobs(field, location){
-  const isRemote = location==='remote';
-  const params = new URLSearchParams({
-    query:`${field} internship`, location:isRemote?'United States':location,
-    employment_types:'INTERN', remote_jobs_only:isRemote?'true':'false', page:'1',
-  });
-  const r = await fetch(`https://jsearch.p.rapidapi.com/search?${params}`, {
+  const isRemote = location === 'remote' || location === '';
+  const r = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(field+' internship')}&location=${encodeURIComponent(isRemote?'United States':location)}&employment_types=INTERN&remote_jobs_only=${isRemote}&page=1&num_pages=1`, {
     headers:{ 'x-rapidapi-host':'jsearch.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
   });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
   const d = await r.json();
+  if(d.status === 'ERROR') throw new Error(d.error?.message || 'API error');
   return (d.data||[]).slice(0,8).map(j => ({
-    name:j.employer_name||'Company', position:j.job_title||'',
-    company:j.employer_name||'', location:j.job_city?`${j.job_city}, ${j.job_state||''}`:'',
-    url:j.job_apply_link||'', isJob:true, remote:j.job_is_remote,
+    name:     j.employer_name || 'Unknown Company',
+    position: j.job_title || field + ' Internship',
+    company:  j.employer_name || '',
+    location: j.job_is_remote ? 'Remote' : (j.job_city ? `${j.job_city}, ${j.job_state||''}` : location),
+    url:      j.job_apply_link || j.job_google_link || '',
+    isJob:    true,
+    remote:   j.job_is_remote,
   }));
+}
+
+async function searchLinkedInPeople(field, location){
+  // Build a targeted keyword string
+  const kw = `${field} intern analyst associate`;
+  const url = `https://linkedin-api8.p.rapidapi.com/search-people?keywords=${encodeURIComponent(kw)}${location?'&location='+encodeURIComponent(location):''}&page=1`;
+  const r = await fetch(url, {
+    headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  // API returns items[] or results[] or data[] depending on version
+  const items = d.items || d.results || d.data || d.people || [];
+  return items.slice(0,8).map(p => {
+    const firstName = p.firstName || p.first_name || '';
+    const lastName  = p.lastName  || p.last_name  || '';
+    return {
+      name:     (p.fullName || p.name || (firstName+' '+lastName).trim() || 'Unknown').trim(),
+      position: p.headline || p.currentPositionText || p.title || '',
+      company:  (p.currentCompany?.name) || p.company || p.companyName || '',
+      location: p.location || p.geoLocation || '',
+      url:      p.profileURL || p.linkedinUrl || (p.username ? `https://linkedin.com/in/${p.username}` : ''),
+    };
+  }).filter(p => p.name && p.name !== 'Unknown');
 }
 
 // ── PROSPECTS ─────────────────────────────────────────────────────────
@@ -1130,12 +1155,50 @@ function importConnections(){
   }
   liConnections=parsed.filter(p=>p.name&&p.name.length>1);
   localStorage.setItem('finley_connections',JSON.stringify(liConnections));
-  const kwds=['finance','banking','investment','capital','asset','equity','fund','trading','wealth','financial','analyst','associate','portfolio','hedge','venture','advisor'];
-  const relevant=liConnections.filter(c=>kwds.some(k=>(c.position+' '+c.company).toLowerCase().includes(k)));
-  document.getElementById('li-status').innerHTML=`<span style="color:var(--green)">✓ ${liConnections.length} imported</span>`;
-  document.getElementById('connections-summary').innerHTML=`<div style="font-size:12px;color:var(--muted)">${liConnections.length} total · <span style="color:var(--gold)">${relevant.length} appear to be in finance</span></div>`;
   setupStep.connections=true;
   updateAccordion('acc-connections',true,`${liConnections.length} connections`);
+  renderConnectionsList();
+  updateSetupGate();
+}
+
+function renderConnectionsList(){
+  const kwds=['finance','banking','investment','capital','asset','equity','fund','trading','wealth','financial','analyst','associate','portfolio','hedge','venture','advisor'];
+  const relevant=liConnections.filter(c=>kwds.some(k=>(c.position+' '+c.company).toLowerCase().includes(k)));
+  const el=document.getElementById('connections-summary');
+  if(!el||!liConnections.length) return;
+  el.innerHTML=`
+    <div style="margin-bottom:10px;font-size:12px;color:var(--muted)">
+      ${liConnections.length} total · <span style="color:var(--gold);font-weight:600">${relevant.length} in finance</span>
+    </div>
+    <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--s2)">
+      ${liConnections.slice(0,100).map(c=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--divider)">
+          <div style="width:30px;height:30px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);flex-shrink:0">
+            ${(c.name||'?').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase()}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500">${c.url?`<a href="${c.url}" target="_blank">${c.name}</a>`:c.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${[c.position,c.company].filter(Boolean).join(' · ')}</div>
+          </div>
+          ${kwds.some(k=>(c.position+' '+c.company).toLowerCase().includes(k))?'<span class="badge badge-gold" style="font-size:10px">Finance</span>':''}
+        </div>`).join('')}
+      ${liConnections.length>100?`<div style="padding:8px 14px;font-size:11px;color:var(--muted)">+${liConnections.length-100} more</div>`:''}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-sm btn-danger" onclick="clearConnections()">Clear Connections</button>
+    </div>`;
+  document.getElementById('li-status').innerHTML=`<span style="color:var(--green)">✓ ${liConnections.length} connections loaded</span>`;
+}
+
+function clearConnections(){
+  if(!confirm('Remove all imported connections?')) return;
+  liConnections=[];
+  localStorage.removeItem('finley_connections');
+  setupStep.connections=false;
+  document.getElementById('connections-summary').innerHTML='';
+  document.getElementById('li-status').innerHTML='';
+  document.getElementById('li-csv').value='';
+  updateAccordion('acc-connections',false,'Not imported');
   updateSetupGate();
 }
 
