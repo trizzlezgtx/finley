@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Finley — Finance Internship Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
   --bg:#0e1117;--surface:#161b27;--s2:#1e2536;--s3:#242b3d;
@@ -13,14 +14,14 @@
   --green:#2ecc71;--green-dim:rgba(46,204,113,.12);
   --blue:#3b82f6;--blue-dim:rgba(59,130,246,.12);
   --red:#e74c3c;--red-dim:rgba(231,76,60,.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
   --radius:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;font-size:14px}
-a{color:var(--gold);text-decoration:none}
-a:hover{color:var(--gold-lt)}
+a{color:var(--gold);text-decoration:none}a:hover{color:var(--gold-lt)}
 
-/* ── LOGIN ── */
+/* LOGIN */
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.06) 0%,transparent 70%)}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:380px;text-align:center}
 .login-logo{font-size:36px;font-weight:800;color:var(--gold);letter-spacing:-1px;margin-bottom:4px}
@@ -31,41 +32,67 @@ a:hover{color:var(--gold-lt)}
 .btn-gold:hover{background:var(--gold-lt)}
 .login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px}
 
-/* ── SHELL ── */
+/* SHELL */
 #app{display:none;min-height:100vh}
-.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:4px;height:54px;position:sticky;top:0;z-index:100}
-.app-logo{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.5px;margin-right:24px}
-.nav-tab{font-size:13px;font-weight:500;color:var(--muted);padding:18px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
-.nav-tab:hover{color:var(--text)}
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:2px;height:54px;position:sticky;top:0;z-index:100}
+.app-logo{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.5px;margin-right:20px}
+.nav-tab{font-size:13px;font-weight:500;color:var(--muted);padding:18px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;display:flex;align-items:center;gap:6px;position:relative}
+.nav-tab:hover:not(.locked){color:var(--text)}
 .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-.nav-count{font-size:11px;background:var(--gold-dim);color:var(--gold);border-radius:8px;padding:1px 6px;margin-left:4px}
+.nav-tab.locked{cursor:not-allowed;opacity:.45}
+.nav-tab.locked:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;white-space:nowrap;color:var(--text);pointer-events:none;z-index:200}
+.nav-count{font-size:11px;background:var(--gold-dim);color:var(--gold);border-radius:8px;padding:1px 6px}
+.setup-progress{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.progress-bar{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:.3s}
 
 .app-body{padding:28px 32px;max-width:1280px;margin:0 auto}
-.tab-panel{display:none}
-.tab-panel.active{display:block}
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-/* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:18px}
+/* CARDS & ACCORDIONS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:16px}
 .card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
-.card-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title-row .card-title{margin-bottom:0}
 
-/* ── GRID ── */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.accordion{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.accordion-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;transition:.15s;user-select:none}
+.accordion-header:hover{background:var(--s2)}
+.accordion-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px}
+.accordion-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.accordion-check{background:var(--green-dim);color:var(--green)}
+.accordion-pending{background:var(--gold-dim);color:var(--gold)}
+.accordion-chevron{font-size:12px;color:var(--muted);transition:transform .2s}
+.accordion-body{display:none;padding:0 20px 20px;border-top:1px solid var(--divider)}
+.accordion-body.open{display:block}
+.accordion.done .accordion-header{border-left:3px solid var(--green)}
+.accordion.active-section .accordion-header{border-left:3px solid var(--gold)}
 
-/* ── FORMS ── */
-textarea,input[type=text],input[type=email],input[type=password],select{
+/* FORMS */
+textarea,input[type=text],input[type=email],select{
   background:var(--s2);border:1px solid var(--border);border-radius:8px;
   padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;
 }
 textarea{width:100%;resize:vertical}
-input[type=text],input[type=email],input[type=password]{width:100%}
+input[type=text],input[type=email]{width:100%}
 textarea:focus,input:focus,select:focus{border-color:var(--gold)}
-select{cursor:pointer}
+select{cursor:pointer;width:100%}
 .field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.field-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 
-/* ── BUTTONS ── */
+/* FILE UPLOAD */
+.file-drop{border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:.15s;background:var(--s2);position:relative}
+.file-drop:hover,.file-drop.drag{border-color:var(--gold);background:var(--gold-dim)}
+.file-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.file-drop-icon{font-size:28px;margin-bottom:8px}
+.file-drop-label{font-size:13px;color:var(--muted)}
+.file-drop-label strong{color:var(--gold)}
+.file-name{font-size:12px;color:var(--green);margin-top:8px}
+
+/* CV INPUT TOGGLE */
+.input-toggle{display:flex;background:var(--s2);border-radius:8px;padding:3px;margin-bottom:14px;width:fit-content;border:1px solid var(--border)}
+.toggle-btn{padding:6px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;color:var(--muted);border:none;background:transparent}
+.toggle-btn.active{background:var(--gold);color:#0e1117}
+
+/* BUTTONS */
 .btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 18px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:var(--gold);color:var(--gold)}
 .btn-primary{background:var(--gold);color:#0e1117;border:none;font-weight:700}
@@ -75,39 +102,36 @@ select{cursor:pointer}
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
 .btn-danger{border-color:var(--red);color:var(--red)}
 .btn-danger:hover{background:var(--red-dim)}
+.btn-blue{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.btn-blue:hover{background:var(--blue);color:#fff}
 .btn[disabled]{opacity:.4;cursor:default;pointer-events:none}
 
-/* ── PILLS ── */
+/* PILLS */
 .pill-group{display:flex;flex-wrap:wrap;gap:8px}
-.pill{padding:7px 16px;border-radius:20px;border:1px solid var(--border);font-size:13px;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+.pill{padding:7px 16px;border-radius:20px;border:1px solid var(--border);font-size:13px;color:var(--muted);cursor:pointer;transition:.15s}
 .pill:hover{border-color:var(--gold);color:var(--gold)}
 .pill.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:600}
 
-/* ── BADGES ── */
+/* BADGES */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge-gold{background:var(--gold-dim);color:var(--gold)}
 .badge-green{background:var(--green-dim);color:var(--green)}
 .badge-blue{background:var(--blue-dim);color:var(--blue)}
 .badge-red{background:var(--red-dim);color:var(--red)}
 .badge-gray{background:var(--s3);color:var(--muted)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
 
-/* ── PROSPECT CARDS ── */
+/* PROSPECT CARDS */
 .prospect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.p-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.15s;cursor:default}
+.p-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.15s}
 .p-card:hover{border-color:var(--gold-mid)}
 .p-avatar{width:42px;height:42px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--gold);flex-shrink:0}
-.p-name{font-size:14px;font-weight:600;line-height:1.2}
-.p-role{font-size:12px;color:var(--muted);margin-top:2px}
-.p-loc{font-size:11px;color:var(--subtle);margin-top:3px}
-.p-divider{border:none;border-top:1px solid var(--divider);margin:12px 0}
 
-/* ── EMAIL BLOCKS ── */
+/* EMAIL */
 .email-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px}
-.email-block:hover{border-color:var(--border)}
-.email-to-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
 .email-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
 
-/* ── TRACKER TABLE ── */
+/* TABLE */
 .tracker-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 14px;color:var(--muted);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
@@ -115,26 +139,37 @@ td{padding:11px 14px;border-bottom:1px solid var(--divider);vertical-align:middl
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--s2)}
 
-/* ── CV ANALYSIS ── */
-.analysis-grid{background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.analysis-row{display:flex;gap:0;border-bottom:1px solid var(--divider);padding:10px 16px}
+/* CV ANALYSIS */
+.analysis-grid{background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px}
+.analysis-row{display:flex;border-bottom:1px solid var(--divider);padding:10px 16px}
 .analysis-row:last-child{border-bottom:none}
-.analysis-key{font-size:12px;font-weight:600;color:var(--muted);min-width:160px;flex-shrink:0;padding-top:1px}
+.analysis-key{font-size:12px;font-weight:600;color:var(--muted);min-width:150px;flex-shrink:0;padding-top:1px}
 .analysis-val{font-size:13px;color:var(--text);line-height:1.5}
 
-/* ── MISC ── */
+/* HOUSING NOTICE */
+.housing-note{background:var(--green-dim);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--green);line-height:1.6}
+.reloc-note{background:var(--amber-dim);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--amber);line-height:1.6;margin-top:12px}
+
+/* SETUP GATE BANNER */
+.gate-banner{background:var(--gold-dim);border:1px solid var(--gold-mid);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.gate-banner-icon{font-size:20px}
+.gate-banner-text{font-size:13px;color:var(--text);line-height:1.5}
+.gate-banner-text strong{color:var(--gold)}
+
+/* MISC */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
 .empty-icon{font-size:36px;margin-bottom:12px}
 .empty-label{font-size:14px}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .status-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.divider{border:none;border-top:1px solid var(--divider);margin:20px 0}
 .section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
 .note-input{background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--muted);width:160px}
 .note-input:focus{border-bottom-color:var(--gold);outline:none}
 #toast{position:fixed;bottom:24px;right:24px;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:11px 20px;font-size:13px;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none}
-.housing-note{background:var(--green-dim);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);margin-top:12px}
+.li-pull-row{display:flex;gap:8px;align-items:flex-start;margin-top:8px}
+.li-pull-row input{flex:1}
 </style>
 </head>
 <body>
@@ -155,142 +190,250 @@ tr:hover td{background:var(--s2)}
   <div class="app-header">
     <div class="app-logo">Finley</div>
     <div class="nav-tab active" data-tab="setup" onclick="switchTab('setup')">Setup</div>
-    <div class="nav-tab" data-tab="search" onclick="switchTab('search')">Search</div>
-    <div class="nav-tab" data-tab="prospects" onclick="switchTab('prospects')">Prospects<span class="nav-count" id="nc-prospects" style="display:none"></span></div>
-    <div class="nav-tab" data-tab="outreach" onclick="switchTab('outreach')">Outreach<span class="nav-count" id="nc-outreach" style="display:none"></span></div>
-    <div class="nav-tab" data-tab="tracker" onclick="switchTab('tracker')">Tracker<span class="nav-count" id="nc-tracker" style="display:none"></span></div>
+    <div class="nav-tab locked" data-tab="search" data-tip="Complete Setup first" onclick="switchTab('search')">Search</div>
+    <div class="nav-tab locked" data-tab="prospects" data-tip="Complete Setup first" onclick="switchTab('prospects')">Prospects<span class="nav-count" id="nc-prospects" style="display:none"></span></div>
+    <div class="nav-tab locked" data-tab="outreach" data-tip="Complete Setup first" onclick="switchTab('outreach')">Outreach<span class="nav-count" id="nc-outreach" style="display:none"></span></div>
+    <div class="nav-tab locked" data-tab="tracker" data-tip="Complete Setup first" onclick="switchTab('tracker')">Tracker<span class="nav-count" id="nc-tracker" style="display:none"></span></div>
+    <div class="setup-progress" id="setup-progress-wrap">
+      <span id="setup-progress-label" style="font-size:12px;color:var(--muted)">Setup 0/3</span>
+      <div class="progress-bar"><div class="progress-fill" id="setup-progress-fill" style="width:0%"></div></div>
+    </div>
   </div>
 
   <div class="app-body">
 
-    <!-- ── SETUP ── -->
+    <!-- ── SETUP TAB ── -->
     <div class="tab-panel active" id="tab-setup">
-      <div class="two-col">
-        <div>
-          <div class="card">
-            <div class="card-title">Your CV / Resume</div>
-            <textarea id="cv-input" rows="16" placeholder="Paste your full CV here. The more detail the better — education, experience, skills, GPA, clubs, awards. Claude will analyze it and use it to personalize every outreach email."></textarea>
-            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+
+      <!-- 1. CV -->
+      <div class="accordion active-section" id="acc-cv">
+        <div class="accordion-header" onclick="toggleAcc('acc-cv')">
+          <div class="accordion-title">
+            <div class="accordion-icon accordion-pending" id="acc-cv-icon">1</div>
+            Your CV / Resume
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="acc-cv-badge" style="font-size:12px;color:var(--muted)">Not analyzed yet</span>
+            <span class="accordion-chevron" id="acc-cv-chev">▼</span>
+          </div>
+        </div>
+        <div class="accordion-body open" id="acc-cv-body">
+          <div style="padding-top:16px">
+            <div class="input-toggle">
+              <button class="toggle-btn active" id="tog-paste" onclick="setCVMode('paste')">Paste Text</button>
+              <button class="toggle-btn" id="tog-file" onclick="setCVMode('file')">Upload File</button>
+              <button class="toggle-btn" id="tog-linkedin" onclick="setCVMode('linkedin')">Pull from LinkedIn</button>
+            </div>
+
+            <!-- Paste mode -->
+            <div id="cv-paste-mode">
+              <textarea id="cv-input" rows="14" placeholder="Paste your full CV here — education, experience, skills, GPA, clubs, awards, certifications. More detail = better personalised emails."></textarea>
+            </div>
+
+            <!-- File mode -->
+            <div id="cv-file-mode" style="display:none">
+              <div class="file-drop" id="file-drop" ondragover="fileDrag(event,true)" ondragleave="fileDrag(event,false)" ondrop="fileDrop(event)">
+                <input type="file" id="cv-file-input" accept=".pdf,.txt,.doc,.docx" onchange="fileSelected(this)">
+                <div class="file-drop-icon">📄</div>
+                <div class="file-drop-label"><strong>Click to upload</strong> or drag and drop</div>
+                <div class="file-drop-label" style="font-size:11px;margin-top:4px">PDF, TXT supported</div>
+                <div class="file-name" id="file-name"></div>
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:var(--muted)">Extracted text preview:</div>
+              <textarea id="cv-file-preview" rows="6" readonly style="margin-top:6px;opacity:.7;font-size:12px"></textarea>
+            </div>
+
+            <!-- LinkedIn mode -->
+            <div id="cv-linkedin-mode" style="display:none">
+              <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+                Enter your LinkedIn profile URL. Finley will pull your profile data — headline, experience, education, skills — and use it to build your CV analysis automatically.
+              </p>
+              <div class="li-pull-row">
+                <input type="text" id="li-profile-url" placeholder="https://linkedin.com/in/yourprofile">
+                <button class="btn btn-blue" onclick="pullLinkedInProfile()">Pull Profile</button>
+              </div>
+              <div class="status-row" style="margin-top:10px" id="li-pull-status"></div>
+              <textarea id="cv-linkedin-preview" rows="6" style="margin-top:10px;font-size:12px;display:none" readonly></textarea>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
               <button class="btn btn-primary" onclick="analyzeCV()">Analyze CV</button>
               <div class="status-row" id="cv-status"></div>
             </div>
-          </div>
-          <div class="card">
-            <div class="card-title">Your Details</div>
-            <div style="display:flex;flex-direction:column;gap:12px">
-              <div>
-                <div class="field-label">Full Name</div>
-                <input type="text" id="user-name" value="Nigel Ellison">
-              </div>
-              <div>
-                <div class="field-label">Your Email Address</div>
-                <input type="email" id="user-email" placeholder="nigel@email.com">
-              </div>
-              <div>
-                <div class="field-label">LinkedIn Profile URL</div>
-                <input type="text" id="user-linkedin" placeholder="https://linkedin.com/in/yourprofile">
-              </div>
-              <button class="btn" style="align-self:flex-start" onclick="saveDetails()">Save Details</button>
-            </div>
+
+            <div id="cv-analysis-panel" style="margin-top:16px"></div>
           </div>
         </div>
-        <div>
-          <div class="card" style="min-height:320px">
-            <div class="card-title">CV Analysis</div>
-            <div id="cv-analysis-panel">
-              <div class="empty-state" style="padding:30px 0">
-                <div class="empty-icon">📄</div>
-                <div class="empty-label" style="color:var(--muted)">Paste your CV and click Analyze</div>
-              </div>
+      </div>
+
+      <!-- 2. Your Details -->
+      <div class="accordion" id="acc-details">
+        <div class="accordion-header" onclick="toggleAcc('acc-details')">
+          <div class="accordion-title">
+            <div class="accordion-icon accordion-pending" id="acc-details-icon">2</div>
+            Your Details
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="acc-details-badge" style="font-size:12px;color:var(--muted)">Not saved yet</span>
+            <span class="accordion-chevron" id="acc-details-chev">▶</span>
+          </div>
+        </div>
+        <div class="accordion-body" id="acc-details-body">
+          <div style="padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="field-group">
+              <div class="field-label">Full Name</div>
+              <input type="text" id="user-name" value="Nigel Ellison">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Your Email Address</div>
+              <input type="email" id="user-email" placeholder="nigel@email.com">
+            </div>
+            <div class="field-group">
+              <div class="field-label">LinkedIn Profile URL</div>
+              <input type="text" id="user-linkedin" placeholder="https://linkedin.com/in/yourprofile">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Your Hometown / Current City</div>
+              <input type="text" id="user-hometown" placeholder="e.g. Dallas, TX">
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Used to identify which search locations require relocation aid</div>
+            </div>
+            <div class="field-group" style="grid-column:1/-1">
+              <div class="field-label">Target Fields (select your priorities)</div>
+              <div class="pill-group" id="pref-fields" style="margin-top:4px"></div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-title">LinkedIn Connections Import</div>
+          <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
+            <button class="btn btn-primary" onclick="saveDetails()">Save Details</button>
+            <div class="status-row" id="details-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. LinkedIn Connections -->
+      <div class="accordion" id="acc-connections">
+        <div class="accordion-header" onclick="toggleAcc('acc-connections')">
+          <div class="accordion-title">
+            <div class="accordion-icon accordion-pending" id="acc-connections-icon">3</div>
+            LinkedIn Connections Import
+            <span class="badge badge-gray" style="font-size:10px">Optional</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="acc-connections-badge" style="font-size:12px;color:var(--muted)">Not imported</span>
+            <span class="accordion-chevron" id="acc-connections-chev">▶</span>
+          </div>
+        </div>
+        <div class="accordion-body" id="acc-connections-body">
+          <div style="padding-top:16px">
             <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">
-              Pull your personal network for finance contacts.<br>
-              <strong style="color:var(--text)">How to export:</strong> LinkedIn → Me → Settings & Privacy → Data Privacy → Get a copy of your data → Connections → Request archive. Paste the CSV below, or paste LinkedIn profile URLs one per line.
+              Pull your personal network to find finance contacts you already know.<br>
+              <strong style="color:var(--text)">How to export:</strong> LinkedIn → Me → Settings &amp; Privacy → Data Privacy → Get a copy of your data → Connections → Request archive. Paste the CSV below, or paste LinkedIn profile URLs one per line.
             </p>
-            <textarea id="li-csv" rows="5" placeholder="Paste LinkedIn connections CSV or LinkedIn profile URLs here..."></textarea>
+            <textarea id="li-csv" rows="5" placeholder="Paste LinkedIn connections CSV or profile URLs (one per line)..."></textarea>
             <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
-              <button class="btn" onclick="importConnections()">Import</button>
+              <button class="btn" onclick="importConnections()">Import Connections</button>
               <div class="status-row" id="li-status"></div>
             </div>
             <div id="connections-summary" style="margin-top:12px"></div>
           </div>
         </div>
       </div>
+
+      <div id="setup-complete-banner" style="display:none" class="housing-note" style="margin-top:4px">
+        ✓ Setup complete — all tabs are now unlocked. Head to Search to find your first prospects.
+      </div>
     </div>
 
-    <!-- ── SEARCH ── -->
+    <!-- ── SEARCH TAB ── -->
     <div class="tab-panel" id="tab-search">
-      <div class="card">
-        <div class="card-title">Finance Field — select one or more</div>
-        <div class="pill-group" id="field-pills"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Location</div>
-        <div class="pill-group" id="location-pills"></div>
-        <div class="housing-note" style="margin-top:16px">
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
-            <input type="checkbox" id="housing-filter" style="margin-top:2px;flex-shrink:0">
-            <span><strong>Housing aid / relocation stipend filter</strong> — only show firms known to provide housing assistance for interns (Goldman, Morgan Stanley, Blackstone, Citadel, KKR, Two Sigma, Jane Street, DE Shaw, Point72 and similar)</span>
-          </label>
+      <div id="reloc-info-banner" style="margin-bottom:16px"></div>
+
+      <!-- Field -->
+      <div class="accordion active-section" id="acc-field">
+        <div class="accordion-header" onclick="toggleAcc('acc-field')">
+          <div class="accordion-title" style="font-size:14px;font-weight:600">Finance Field <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">select one or more</span></div>
+          <span class="accordion-chevron" id="acc-field-chev">▼</span>
+        </div>
+        <div class="accordion-body open" id="acc-field-body">
+          <div style="padding-top:14px">
+            <div class="pill-group" id="field-pills"></div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title">Search Mode — select one or more</div>
-        <div class="pill-group">
-          <div class="pill" id="mode-posted" onclick="toggleMode('posted',this)">Posted Internships</div>
-          <div class="pill" id="mode-unofficial" onclick="toggleMode('unofficial',this)">Unofficial Outreach</div>
-          <div class="pill" id="mode-connections" onclick="toggleMode('connections',this)">My LinkedIn Connections</div>
+
+      <!-- Location -->
+      <div class="accordion active-section" id="acc-location">
+        <div class="accordion-header" onclick="toggleAcc('acc-location')">
+          <div class="accordion-title" style="font-size:14px;font-weight:600">Location <span style="font-size:12px;color:var(--muted);font-weight:400;margin-left:6px">select one or more</span></div>
+          <span class="accordion-chevron" id="acc-location-chev">▼</span>
         </div>
-        <p style="font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6">
-          <strong style="color:var(--text)">Posted</strong> — listed internships from LinkedIn Jobs, Indeed, Glassdoor.<br>
-          <strong style="color:var(--text)">Unofficial</strong> — find analysts/associates at target firms and draft cold emails.<br>
-          <strong style="color:var(--text)">My LinkedIn Connections</strong> — search your imported connections for finance contacts.
-        </p>
+        <div class="accordion-body open" id="acc-location-body">
+          <div style="padding-top:14px">
+            <div class="pill-group" id="location-pills"></div>
+            <div id="reloc-pills-note" style="margin-top:12px"></div>
+            <div style="margin-top:14px">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--muted)">
+                <input type="checkbox" id="housing-filter" style="margin-top:2px;flex-shrink:0">
+                <span><strong style="color:var(--text)">Housing aid / stipend filter</strong> — only show firms known to provide housing assistance (Goldman, Morgan Stanley, Blackstone, Citadel, KKR, Two Sigma, Jane Street, DE Shaw, Point72 and similar)</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px">
+
+      <!-- Mode -->
+      <div class="accordion active-section" id="acc-mode">
+        <div class="accordion-header" onclick="toggleAcc('acc-mode')">
+          <div class="accordion-title" style="font-size:14px;font-weight:600">Search Mode</div>
+          <span class="accordion-chevron" id="acc-mode-chev">▼</span>
+        </div>
+        <div class="accordion-body open" id="acc-mode-body">
+          <div style="padding-top:14px">
+            <div class="pill-group">
+              <div class="pill" id="mode-posted" onclick="toggleMode('posted',this)">Posted Internships</div>
+              <div class="pill" id="mode-unofficial" onclick="toggleMode('unofficial',this)">Unofficial Outreach</div>
+              <div class="pill" id="mode-connections" onclick="toggleMode('connections',this)">My LinkedIn Connections</div>
+            </div>
+            <div style="margin-top:14px;background:var(--s2);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--muted);line-height:1.7">
+              <div><strong style="color:var(--text)">Posted</strong> — listed internships from LinkedIn Jobs, Indeed, Glassdoor aggregated search</div>
+              <div><strong style="color:var(--text)">Unofficial</strong> — find analysts/associates at target firms, draft cold outreach emails</div>
+              <div><strong style="color:var(--text)">My Connections</strong> — search imported LinkedIn connections for relevant finance contacts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:16px;margin-top:4px">
         <button class="btn btn-primary" style="padding:11px 32px;font-size:14px" onclick="runSearch()">Search</button>
         <div class="status-row" id="search-status"></div>
       </div>
     </div>
 
-    <!-- ── PROSPECTS ── -->
+    <!-- ── PROSPECTS TAB ── -->
     <div class="tab-panel" id="tab-prospects">
       <div id="prospects-panel">
-        <div class="empty-state">
-          <div class="empty-icon">🔍</div>
-          <div class="empty-label">Run a search to find prospects</div>
-        </div>
+        <div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-label">Run a search to find prospects</div></div>
       </div>
     </div>
 
-    <!-- ── OUTREACH ── -->
+    <!-- ── OUTREACH TAB ── -->
     <div class="tab-panel" id="tab-outreach">
       <div id="outreach-panel">
-        <div class="empty-state">
-          <div class="empty-icon">✉️</div>
-          <div class="empty-label">Click "Draft Email" on a prospect to generate a personalised email</div>
-        </div>
+        <div class="empty-state"><div class="empty-icon">✉️</div><div class="empty-label">Click "Draft Email" on a prospect to generate a personalised email</div></div>
       </div>
     </div>
 
-    <!-- ── TRACKER ── -->
+    <!-- ── TRACKER TAB ── -->
     <div class="tab-panel" id="tab-tracker">
       <div class="card">
-        <div class="card-title-row">
-          <div class="card-title">Contact History</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:0">Contact History</div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-sm" onclick="exportCSV()">Export CSV</button>
             <button class="btn btn-sm btn-danger" onclick="clearTracker()">Clear All</button>
           </div>
         </div>
         <div class="tracker-wrap" id="tracker-wrap">
-          <div class="empty-state" style="padding:40px 0">
-            <div class="empty-icon">📋</div>
-            <div class="empty-label">No contacts tracked yet</div>
-          </div>
+          <div class="empty-state" style="padding:40px 0"><div class="empty-icon">📋</div><div class="empty-label">No contacts tracked yet</div></div>
         </div>
       </div>
     </div>
@@ -325,6 +468,8 @@ const LOCATIONS = [
   { label:'Charlotte, NC', val:'Charlotte North Carolina' },
   { label:'Boston, MA',    val:'Boston Massachusetts' },
   { label:'Austin, TX',    val:'Austin Texas' },
+  { label:'Atlanta, GA',   val:'Atlanta Georgia' },
+  { label:'San Francisco, CA', val:'San Francisco California' },
 ];
 
 const HOUSING_FIRMS = [
@@ -332,10 +477,10 @@ const HOUSING_FIRMS = [
   'blackstone','kkr','apollo','citadel','two sigma','jane street','de shaw',
   'd.e. shaw','bridgewater','point72','millennium','blackrock','vanguard',
   'fidelity','t. rowe price','carlyle','warburg pincus','bain capital',
-  'tiger global','coatue','hudson river','virtu','susquehanna','sac capital',
+  'tiger global','coatue','hudson river','virtu','susquehanna',
 ];
 
-// ── STATE ──────────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────
 let selectedFields    = [];
 let selectedLocations = [];
 let selectedModes     = [];
@@ -344,8 +489,10 @@ let contacts          = JSON.parse(localStorage.getItem('finley_contacts') || '[
 let cvAnalysis        = JSON.parse(localStorage.getItem('finley_cv_analysis') || 'null');
 let liConnections     = JSON.parse(localStorage.getItem('finley_connections') || '[]');
 let drafts            = JSON.parse(localStorage.getItem('finley_drafts') || '{}');
+let cvMode            = 'paste';
+let setupStep         = { cv: !!cvAnalysis, details: !!(localStorage.getItem('finley_email')), connections: false };
 
-// ── AUTH ───────────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────────
 document.getElementById('pass-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 function doLogin(){
   if(document.getElementById('pass-in').value === PASS){
@@ -357,86 +504,178 @@ function doLogin(){
   }
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────
 function init(){
   buildFieldPills();
   buildLocationPills();
+  buildPrefFields();
   loadStored();
   renderTracker();
   renderOutreach();
   updateCounts();
+  updateSetupGate();
 }
 
 function loadStored(){
   const cv = localStorage.getItem('finley_cv');
   if(cv) document.getElementById('cv-input').value = cv;
   if(cvAnalysis) renderCVAnalysis(cvAnalysis);
-  const email = localStorage.getItem('finley_email');
-  const li    = localStorage.getItem('finley_linkedin');
-  if(email) document.getElementById('user-email').value = email;
-  if(li)    document.getElementById('user-linkedin').value = li;
+
+  const email    = localStorage.getItem('finley_email');
+  const li       = localStorage.getItem('finley_linkedin');
+  const hometown = localStorage.getItem('finley_hometown');
+  if(email)    document.getElementById('user-email').value    = email;
+  if(li)       document.getElementById('user-linkedin').value = li;
+  if(hometown) document.getElementById('user-hometown').value = hometown;
+
   if(liConnections.length){
-    document.getElementById('li-status').innerHTML = `<span>${liConnections.length} connections loaded</span>`;
+    document.getElementById('li-status').innerHTML = `<span style="color:var(--green)">✓ ${liConnections.length} connections loaded</span>`;
+    updateAccordion('acc-connections', true, `${liConnections.length} connections`);
+    setupStep.connections = true;
+  }
+  if(cvAnalysis) updateAccordion('acc-cv', true, 'Analyzed ✓');
+  if(email)      updateAccordion('acc-details', true, 'Saved ✓');
+}
+
+// ── ACCORDION ─────────────────────────────────────────────────────────
+function toggleAcc(id){
+  const body  = document.getElementById(id + '-body');
+  const chev  = document.getElementById(id + '-chev');
+  if(!body) return;
+  const open  = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  if(chev) chev.textContent = open ? '▶' : '▼';
+}
+
+function updateAccordion(id, done, label){
+  const icon  = document.getElementById(id + '-icon');
+  const badge = document.getElementById(id + '-badge');
+  const acc   = document.getElementById(id);
+  if(icon){
+    icon.textContent = done ? '✓' : icon.textContent;
+    icon.className   = 'accordion-icon ' + (done ? 'accordion-check' : 'accordion-pending');
+  }
+  if(badge) badge.innerHTML = done
+    ? `<span style="color:var(--green)">${label}</span>`
+    : `<span style="color:var(--muted)">${label}</span>`;
+  if(acc && done){ acc.classList.add('done'); acc.classList.remove('active-section'); }
+}
+
+// ── CV MODE ───────────────────────────────────────────────────────────
+function setCVMode(mode){
+  cvMode = mode;
+  document.getElementById('cv-paste-mode').style.display    = mode==='paste'    ? 'block' : 'none';
+  document.getElementById('cv-file-mode').style.display     = mode==='file'     ? 'block' : 'none';
+  document.getElementById('cv-linkedin-mode').style.display = mode==='linkedin' ? 'block' : 'none';
+  ['paste','file','linkedin'].forEach(m => {
+    document.getElementById('tog-'+m).classList.toggle('active', m===mode);
+  });
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────────────
+function fileDrag(e, over){ e.preventDefault(); document.getElementById('file-drop').classList.toggle('drag', over); }
+
+function fileDrop(e){
+  e.preventDefault();
+  fileDrag(e, false);
+  const file = e.dataTransfer.files[0];
+  if(file) processFile(file);
+}
+
+function fileSelected(input){
+  if(input.files[0]) processFile(input.files[0]);
+}
+
+async function processFile(file){
+  document.getElementById('file-name').textContent = file.name;
+  let text = '';
+  try {
+    if(file.type === 'application/pdf' || file.name.endsWith('.pdf')){
+      text = await readPDF(file);
+    } else {
+      text = await file.text();
+    }
+    document.getElementById('cv-file-preview').value = text.substring(0, 800) + (text.length > 800 ? '...' : '');
+    document.getElementById('cv-input').value = text;
+    localStorage.setItem('finley_cv', text);
+    toast('File loaded — click Analyze CV');
+  } catch(e){ toast('Error reading file: ' + e.message); }
+}
+
+async function readPDF(file){
+  const pdfjs = window['pdfjs-dist/build/pdf'] || pdfjsLib;
+  pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ab  = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument(ab).promise;
+  let text  = '';
+  for(let i=1; i<=pdf.numPages; i++){
+    const page    = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(x => x.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+// ── LINKEDIN PROFILE PULL ─────────────────────────────────────────────
+async function pullLinkedInProfile(){
+  const url = document.getElementById('li-profile-url').value.trim();
+  if(!url) return toast('Enter your LinkedIn profile URL');
+  const el = document.getElementById('li-pull-status');
+  el.innerHTML = '<span class="spinner"></span><span>Pulling profile...</span>';
+  try {
+    const r = await fetch(`https://linkedin-api8.p.rapidapi.com/get-profile-data-by-url?url=${encodeURIComponent(url)}`, {
+      headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+    });
+    const d = await r.json();
+    if(d.error || !d.firstName) throw new Error(d.message || 'Profile not found');
+
+    const exp = (d.experiences||[]).slice(0,3).map(e => `${e.title} at ${e.companyName}`).join('; ');
+    const edu = (d.education||[]).slice(0,2).map(e => `${e.schoolName} — ${e.fieldOfStudy||e.degree||''}`).join('; ');
+    const skills = (d.skills||[]).slice(0,10).map(s => s.name||s).join(', ');
+    const text = `Name: ${d.firstName} ${d.lastName}\nHeadline: ${d.headline||''}\nLocation: ${d.geoLocationName||''}\n\nExperience:\n${exp}\n\nEducation:\n${edu}\n\nSkills: ${skills}\n\nSummary: ${d.summary||''}`;
+
+    document.getElementById('cv-linkedin-preview').value = text;
+    document.getElementById('cv-linkedin-preview').style.display = 'block';
+    document.getElementById('cv-input').value = text;
+    localStorage.setItem('finley_cv', text);
+    if(d.firstName) document.getElementById('user-name').value = d.firstName + ' ' + d.lastName;
+    if(url) { document.getElementById('user-linkedin').value = url; localStorage.setItem('finley_linkedin', url); }
+    el.innerHTML = '<span style="color:var(--green)">✓ Profile pulled — click Analyze CV</span>';
+  } catch(e){
+    el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
   }
 }
 
-// ── PILLS ──────────────────────────────────────────────────────────────
-function buildFieldPills(){
-  document.getElementById('field-pills').innerHTML = FINANCE_FIELDS.map(f =>
-    `<div class="pill" onclick="toggleField(this,'${f}')">${f}</div>`
-  ).join('');
-}
-function buildLocationPills(){
-  document.getElementById('location-pills').innerHTML = LOCATIONS.map(l =>
-    `<div class="pill" onclick="toggleLocation(this,'${l.label}')">${l.label}</div>`
-  ).join('');
-}
-function toggleField(el, val){ toggleSel(selectedFields, val, el); }
-function toggleLocation(el, val){ toggleSel(selectedLocations, val, el); }
-function toggleMode(val, el){ toggleSel(selectedModes, val, el); }
-function toggleSel(arr, val, el){
-  const i = arr.indexOf(val);
-  if(i===-1){ arr.push(val); el.classList.add('on'); }
-  else { arr.splice(i,1); el.classList.remove('on'); }
-}
-
-// ── SAVE DETAILS ───────────────────────────────────────────────────────
-function saveDetails(){
-  localStorage.setItem('finley_email',    document.getElementById('user-email').value.trim());
-  localStorage.setItem('finley_linkedin', document.getElementById('user-linkedin').value.trim());
-  localStorage.setItem('finley_name',     document.getElementById('user-name').value.trim());
-  toast('Details saved');
-}
-
-// ── CV ANALYSIS ────────────────────────────────────────────────────────
+// ── CV ANALYSIS ───────────────────────────────────────────────────────
 async function analyzeCV(){
   const cv = document.getElementById('cv-input').value.trim();
-  if(!cv) return toast('Paste your CV first');
+  if(!cv) return toast('Add your CV first — paste, upload, or pull from LinkedIn');
   localStorage.setItem('finley_cv', cv);
   const el = document.getElementById('cv-status');
   el.innerHTML = '<span class="spinner"></span><span>Analyzing...</span>';
   try {
-    const res = await claude(`Analyze this CV for a finance internship applicant. Return ONLY valid JSON, no markdown, no explanation.
+    const res = await claude(`Analyze this CV/resume for a finance internship search tool. Return ONLY valid JSON, no markdown.
 {
   "name": "candidate full name",
   "education": "school, degree, graduation year, GPA if listed",
   "relevant_experience": "2-3 sentence summary of most finance-relevant experience",
-  "skills": "finance-relevant skills: software (Excel, Bloomberg, Python etc), techniques, certifications",
-  "achievements": "standout items: GPA, clubs, case competitions, scholarships",
-  "profile_tone": "one word: analytical / entrepreneurial / quantitative / client-facing / etc",
+  "skills": "finance-relevant skills: Excel, Bloomberg, Python, financial modeling, certifications etc",
+  "achievements": "GPA, clubs, case competitions, scholarships, awards",
+  "profile_tone": "one word: analytical / entrepreneurial / quantitative / client-facing",
   "best_pitch": "one punchy sentence selling this candidate for a finance internship"
 }
 CV:
 ${cv}`);
     let parsed;
-    try {
-      const m = res.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(m ? m[0] : res);
-    } catch { parsed = { best_pitch: res }; }
+    try { const m = res.match(/\{[\s\S]*\}/); parsed = JSON.parse(m ? m[0] : res); }
+    catch { parsed = { best_pitch: res }; }
     cvAnalysis = parsed;
     localStorage.setItem('finley_cv_analysis', JSON.stringify(parsed));
     renderCVAnalysis(parsed);
     el.innerHTML = '<span style="color:var(--green)">✓ Analyzed</span>';
+    setupStep.cv = true;
+    updateAccordion('acc-cv', true, 'Analyzed ✓');
+    updateSetupGate();
   } catch(e){
     el.innerHTML = `<span style="color:var(--red)">Error: ${e.message}</span>`;
   }
@@ -444,127 +683,174 @@ ${cv}`);
 
 function renderCVAnalysis(a){
   const rows = [
-    ['Name',             a.name],
-    ['Education',        a.education],
-    ['Experience',       a.relevant_experience],
-    ['Skills',           a.skills],
-    ['Achievements',     a.achievements],
-    ['Profile Tone',     a.profile_tone],
-    ['Best Pitch',       a.best_pitch],
+    ['Name',         a.name],
+    ['Education',    a.education],
+    ['Experience',   a.relevant_experience],
+    ['Skills',       a.skills],
+    ['Achievements', a.achievements],
+    ['Tone',         a.profile_tone],
+    ['Best Pitch',   a.best_pitch],
   ].filter(([,v]) => v);
   document.getElementById('cv-analysis-panel').innerHTML =
-    `<div class="analysis-grid">${rows.map(([k,v])=>
+    `<div class="analysis-grid">${rows.map(([k,v]) =>
       `<div class="analysis-row"><div class="analysis-key">${k}</div><div class="analysis-val">${v}</div></div>`
     ).join('')}</div>`;
 }
 
-// ── LINKEDIN CONNECTIONS IMPORT ─────────────────────────────────────────
-function importConnections(){
-  const raw = document.getElementById('li-csv').value.trim();
-  if(!raw) return;
-  const lines = raw.split('\n').filter(l => l.trim());
-  let parsed = [];
-
-  if(lines[0] && lines[0].includes(',')){
-    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
-    const fi  = headers.findIndex(h => h.includes('first'));
-    const li2 = headers.findIndex(h => h.includes('last'));
-    const co  = headers.findIndex(h => h.includes('company'));
-    const po  = headers.findIndex(h => h.includes('position') || h.includes('title'));
-    const ur  = headers.findIndex(h => h.includes('url'));
-    const em  = headers.findIndex(h => h.includes('email'));
-    for(let i=1;i<lines.length;i++){
-      const c = lines[i].split(',').map(x => x.replace(/"/g,'').trim());
-      parsed.push({
-        name:     ((fi>=0?c[fi]:'') + ' ' + (li2>=0?c[li2]:'')).trim() || c[0] || '',
-        company:  co>=0 ? c[co] : '',
-        position: po>=0 ? c[po] : '',
-        url:      ur>=0 ? c[ur] : '',
-        email:    em>=0 ? c[em] : '',
-        source:   'import',
-      });
-    }
-  } else {
-    parsed = lines.map(l => ({
-      name:   l.startsWith('http') ? l.replace(/.*\/in\//,'').replace(/\//,'').replace(/-/g,' ') : l,
-      url:    l.startsWith('http') ? l : '',
-      source: 'import',
-    }));
-  }
-
-  liConnections = parsed.filter(p => p.name.length > 1);
-  localStorage.setItem('finley_connections', JSON.stringify(liConnections));
-
-  const kwds = ['finance','banking','investment','capital','asset','equity','fund','trading','wealth','financial','analyst','associate','portfolio','hedge','venture','advisor','broker'];
-  const relevant = liConnections.filter(c => kwds.some(k => (c.position+' '+c.company).toLowerCase().includes(k)));
-
-  document.getElementById('li-status').innerHTML = `<span style="color:var(--green)">✓ ${liConnections.length} imported</span>`;
-  document.getElementById('connections-summary').innerHTML =
-    `<div style="font-size:12px;color:var(--muted)">${liConnections.length} total · <span style="color:var(--gold)">${relevant.length} appear to be in finance</span></div>`;
+// ── SAVE DETAILS ──────────────────────────────────────────────────────
+function saveDetails(){
+  const email    = document.getElementById('user-email').value.trim();
+  const li       = document.getElementById('user-linkedin').value.trim();
+  const name     = document.getElementById('user-name').value.trim();
+  const hometown = document.getElementById('user-hometown').value.trim();
+  if(!email) return toast('Email address is required');
+  localStorage.setItem('finley_email',    email);
+  localStorage.setItem('finley_linkedin', li);
+  localStorage.setItem('finley_name',     name);
+  localStorage.setItem('finley_hometown', hometown);
+  document.getElementById('details-status').innerHTML = '<span style="color:var(--green)">✓ Saved</span>';
+  setupStep.details = true;
+  updateAccordion('acc-details', true, 'Saved ✓');
+  updateSetupGate();
+  updateRelocBanner();
 }
 
-// ── SEARCH ─────────────────────────────────────────────────────────────
+// ── SETUP GATE ────────────────────────────────────────────────────────
+function updateSetupGate(){
+  const done  = setupStep.cv && setupStep.details;
+  const count = [setupStep.cv, setupStep.details, setupStep.connections].filter(Boolean).length;
+  const pct   = Math.round((count/3)*100);
+
+  document.getElementById('setup-progress-label').textContent = `Setup ${count}/3`;
+  document.getElementById('setup-progress-fill').style.width = pct + '%';
+
+  const tabs = ['search','prospects','outreach','tracker'];
+  tabs.forEach(tab => {
+    const el = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
+    if(!el) return;
+    if(done){
+      el.classList.remove('locked');
+      el.removeAttribute('data-tip');
+    } else {
+      el.classList.add('locked');
+      el.setAttribute('data-tip', 'Complete CV analysis + save details first');
+    }
+  });
+
+  const banner = document.getElementById('setup-complete-banner');
+  if(banner) banner.style.display = done ? 'block' : 'none';
+}
+
+// ── PILLS ─────────────────────────────────────────────────────────────
+function buildFieldPills(){
+  document.getElementById('field-pills').innerHTML = FINANCE_FIELDS.map(f =>
+    `<div class="pill" onclick="toggleField(this,'${f}')">${f}</div>`
+  ).join('');
+}
+function buildLocationPills(){
+  const hometown = localStorage.getItem('finley_hometown') || '';
+  document.getElementById('location-pills').innerHTML = LOCATIONS.map(l => {
+    const isHome = hometown && l.label.toLowerCase().includes(hometown.toLowerCase().split(',')[0]);
+    return `<div class="pill ${isHome?'on':''}" onclick="toggleLocation(this,'${l.label}')">${l.label}${isHome?' 🏠':''}</div>`;
+  }).join('');
+}
+function buildPrefFields(){
+  document.getElementById('pref-fields').innerHTML = FINANCE_FIELDS.map(f =>
+    `<div class="pill" onclick="this.classList.toggle('on')">${f}</div>`
+  ).join('');
+}
+function toggleField(el,val){ toggleSel(selectedFields,val,el); }
+function toggleLocation(el,val){ toggleSel(selectedLocations,val,el); updateRelocPillsNote(); }
+function toggleMode(val,el){ toggleSel(selectedModes,val,el); }
+function toggleSel(arr,val,el){
+  const i=arr.indexOf(val);
+  if(i===-1){arr.push(val);el.classList.add('on');}
+  else{arr.splice(i,1);el.classList.remove('on');}
+}
+
+function updateRelocBanner(){
+  const hometown = localStorage.getItem('finley_hometown') || '';
+  buildLocationPills();
+  updateRelocPillsNote();
+  const banner = document.getElementById('reloc-info-banner');
+  if(banner && hometown){
+    banner.innerHTML = `<div class="reloc-note">📍 Your hometown is set to <strong>${hometown}</strong>. Locations outside your region are marked with a relocation badge so you know which firms should offer housing aid.</div>`;
+  }
+}
+
+function updateRelocPillsNote(){
+  const hometown = localStorage.getItem('finley_hometown') || '';
+  if(!hometown || !selectedLocations.length) return;
+  const away = selectedLocations.filter(l => !l.toLowerCase().includes(hometown.toLowerCase().split(',')[0]));
+  const note = document.getElementById('reloc-pills-note');
+  if(!note) return;
+  if(away.length){
+    note.innerHTML = `<div class="reloc-note" style="font-size:12px">🏠 <strong>${away.join(', ')}</strong> ${away.length===1?'is':'are'} outside your region — firms there should offer a housing stipend or relocation aid. The housing filter will highlight which ones do.</div>`;
+  } else {
+    note.innerHTML = '';
+  }
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────
 async function runSearch(){
   if(!selectedFields.length) return toast('Select at least one finance field');
   if(!selectedLocations.length) return toast('Select at least one location');
-
   const el = document.getElementById('search-status');
   el.innerHTML = '<span class="spinner"></span><span>Searching...</span>';
   searchResults = [];
   const housingOnly = document.getElementById('housing-filter').checked;
+  const hometown    = localStorage.getItem('finley_hometown') || '';
 
   try {
-    // My LinkedIn Connections mode
     if(selectedModes.includes('connections') && liConnections.length){
       const kws = selectedFields.map(f => f.toLowerCase().split(' ')[0]);
       liConnections.filter(c => kws.some(k => (c.position+' '+c.company).toLowerCase().includes(k)))
-        .forEach(c => searchResults.push({...c, type:'connection', field:selectedFields[0] || 'Finance', badges:['Your Connection']}));
+        .forEach(c => searchResults.push({...c, type:'connection', field:selectedFields[0]||'Finance', badges:['Your Connection']}));
     }
 
-    // Unofficial outreach — LinkedIn people search
-    if(selectedModes.includes('unofficial') || selectedModes.length === 0){
+    if(selectedModes.includes('unofficial') || selectedModes.length===0){
       for(const field of selectedFields.slice(0,3)){
         for(const loc of selectedLocations.slice(0,3)){
-          const locObj = LOCATIONS.find(l => l.label === loc);
-          const locVal = locObj ? locObj.val : loc;
-          const isRemote = locVal === 'remote';
+          const locObj  = LOCATIONS.find(l => l.label===loc);
+          const locVal  = locObj ? locObj.val : loc;
+          const isRemote= locVal==='remote';
           try {
-            const people = await searchLinkedInPeople(field, isRemote ? '' : locVal);
+            const people = await searchLinkedInPeople(field, isRemote?'':locVal);
             people.forEach(p => {
               const hasHousing = HOUSING_FIRMS.some(f => (p.company||'').toLowerCase().includes(f));
+              const needsReloc = hometown && loc!=='Remote' && !loc.toLowerCase().includes(hometown.toLowerCase().split(',')[0]);
               if(housingOnly && !hasHousing) return;
               searchResults.push({...p, type:'unofficial', field, location:loc,
-                badges:[...(hasHousing?['Housing Aid']:[])]});
+                badges:[...(hasHousing?['Housing Aid']:[]),...(needsReloc?['Relocation Needed']:[])]});
             });
-          } catch(e){ console.warn('LinkedIn search failed', e); }
+          } catch(e){ console.warn('LinkedIn search error',e); }
         }
       }
     }
 
-    // Posted jobs
     if(selectedModes.includes('posted')){
       for(const field of selectedFields.slice(0,2)){
         for(const loc of selectedLocations.slice(0,2)){
-          const locObj = LOCATIONS.find(l => l.label === loc);
+          const locObj = LOCATIONS.find(l => l.label===loc);
           const locVal = locObj ? locObj.val : loc;
           try {
             const jobs = await searchJobs(field, locVal);
             jobs.forEach(j => {
               const hasHousing = HOUSING_FIRMS.some(f => (j.company||'').toLowerCase().includes(f));
+              const needsReloc = hometown && loc!=='Remote' && !loc.toLowerCase().includes(hometown.toLowerCase().split(',')[0]);
               if(housingOnly && !hasHousing) return;
               searchResults.push({...j, type:'job', field, location:loc,
-                badges:['Posted Job',...(hasHousing?['Housing Aid']:[])]});
+                badges:['Posted Job',...(hasHousing?['Housing Aid']:[]),...(needsReloc?['Relocation Needed']:[])]});
             });
-          } catch(e){ console.warn('Job search failed', e); }
+          } catch(e){ console.warn('Job search error',e); }
         }
       }
     }
 
-    // Deduplicate
     const seen = new Set();
     searchResults = searchResults.filter(r => {
-      const k = (r.name+r.company).toLowerCase().trim();
-      if(!k || seen.has(k)) return false;
+      const k=(r.name+r.company).toLowerCase().trim();
+      if(!k||seen.has(k)) return false;
       seen.add(k); return true;
     });
 
@@ -578,45 +864,36 @@ async function runSearch(){
 }
 
 async function searchLinkedInPeople(field, location){
-  const q = `${field} analyst associate intern${location ? ' ' + location : ''}`;
-  const params = new URLSearchParams({ keywords: q, page: '1' });
+  const q = `${field} analyst associate intern${location?' '+location:''}`;
+  const params = new URLSearchParams({ keywords:q, page:'1' });
   if(location) params.append('geo', location);
   const r = await fetch(`https://linkedin-api8.p.rapidapi.com/search-people?${params}`, {
     headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
   });
   const d = await r.json();
-  const items = d.items || d.results || d.data || [];
-  return items.slice(0,8).map(p => ({
-    name:    (p.fullName || p.name || ((p.firstName||'') + ' ' + (p.lastName||''))).trim() || 'Unknown',
-    position:p.headline || p.currentPositionText || p.title || '',
-    company: p.currentCompany?.name || p.company || '',
-    location:p.location || '',
-    url:     p.profileURL || (p.username ? `https://linkedin.com/in/${p.username}` : ''),
-    avatar:  p.profilePicture || '',
+  return (d.items||d.results||d.data||[]).slice(0,8).map(p => ({
+    name:    (p.fullName||p.name||((p.firstName||'')+' '+(p.lastName||''))).trim()||'Unknown',
+    position:p.headline||p.currentPositionText||p.title||'',
+    company: p.currentCompany?.name||p.company||'',
+    location:p.location||'',
+    url:     p.profileURL||(p.username?`https://linkedin.com/in/${p.username}`:''),
   }));
 }
 
 async function searchJobs(field, location){
-  const isRemote = location === 'remote';
+  const isRemote = location==='remote';
   const params = new URLSearchParams({
-    query: `${field} internship`,
-    location: isRemote ? 'United States' : location,
-    employment_types: 'INTERN',
-    remote_jobs_only: isRemote ? 'true' : 'false',
-    page: '1',
+    query:`${field} internship`, location:isRemote?'United States':location,
+    employment_types:'INTERN', remote_jobs_only:isRemote?'true':'false', page:'1',
   });
   const r = await fetch(`https://jsearch.p.rapidapi.com/search?${params}`, {
     headers:{ 'x-rapidapi-host':'jsearch.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
   });
   const d = await r.json();
   return (d.data||[]).slice(0,8).map(j => ({
-    name:    j.employer_name || 'Company',
-    position:j.job_title || '',
-    company: j.employer_name || '',
-    location:j.job_city ? `${j.job_city}, ${j.job_state||''}` : '',
-    url:     j.job_apply_link || '',
-    isJob:   true,
-    remote:  j.job_is_remote,
+    name:j.employer_name||'Company', position:j.job_title||'',
+    company:j.employer_name||'', location:j.job_city?`${j.job_city}, ${j.job_state||''}`:'',
+    url:j.job_apply_link||'', isJob:true, remote:j.job_is_remote,
   }));
 }
 
@@ -629,24 +906,24 @@ function renderProspects(){
   }
   panel.innerHTML = `<div class="prospect-grid">${searchResults.map((p,i) => {
     const initials = p.name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
-    const draftKey = dKey(p);
-    const hasDraft = !!drafts[draftKey];
-    const contact  = contacts.find(c => c.name===p.name && c.company===p.company);
-    const status   = contact?.status || '';
+    const hasDraft = !!drafts[dKey(p)];
+    const contact  = contacts.find(c => c.name===p.name&&c.company===p.company);
+    const status   = contact?.status||'';
     return `<div class="p-card">
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
         <div class="p-avatar">${initials}</div>
         <div style="flex:1;min-width:0">
-          <div class="p-name">${p.name}</div>
-          <div class="p-role">${p.position||''}${p.company?' · '+p.company:''}</div>
-          ${p.location?`<div class="p-loc">${p.location}</div>`:''}
+          <div style="font-size:14px;font-weight:600">${p.name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.position||''}${p.company?' · '+p.company:''}</div>
+          ${p.location?`<div style="font-size:11px;color:var(--subtle);margin-top:2px">${p.location}</div>`:''}
         </div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
         <span class="badge badge-gold">${p.field||'Finance'}</span>
-        ${(p.badges||[]).map(b=>
+        ${(p.badges||[]).map(b =>
           b==='Your Connection'?`<span class="badge badge-blue">${b}</span>`:
           b==='Housing Aid'?`<span class="badge badge-green">${b}</span>`:
+          b==='Relocation Needed'?`<span class="badge badge-amber">${b}</span>`:
           b==='Posted Job'?`<span class="badge badge-gray">${b}</span>`:
           `<span class="badge badge-gray">${b}</span>`
         ).join('')}
@@ -662,84 +939,66 @@ function renderProspects(){
   }).join('')}</div>`;
 }
 
-// ── EMAIL DRAFTING ─────────────────────────────────────────────────────
+// ── EMAIL DRAFTING ────────────────────────────────────────────────────
 function dKey(p){ return (p.name+'||'+p.company).toLowerCase(); }
 
 async function draftEmail(idx){
   const p = searchResults[idx];
   if(!p) return;
   if(!cvAnalysis) return toast('Analyze your CV first in the Setup tab');
-
-  const name  = localStorage.getItem('finley_name')     || 'Nigel Ellison';
-  const email = localStorage.getItem('finley_email')    || '';
+  const name  = localStorage.getItem('finley_name')  || 'Nigel Ellison';
+  const email = localStorage.getItem('finley_email') || '';
   const liUrl = localStorage.getItem('finley_linkedin') || '';
-
   toast('Drafting your email...');
-
   try {
-    const prompt = `You are writing a professional cold outreach email for a finance internship.
+    const needsReloc = (p.badges||[]).includes('Relocation Needed');
+    const hasHousing = (p.badges||[]).includes('Housing Aid');
+    const res = await claude(`Write a professional cold outreach email for a finance internship.
 
-SENDER — the applicant:
+SENDER:
 Name: ${name}
 Email: ${email}
 LinkedIn: ${liUrl}
-CV analysis: ${JSON.stringify(cvAnalysis, null, 2)}
+CV summary: ${JSON.stringify(cvAnalysis)}
 
 RECIPIENT:
 Name: ${p.name}
-Title: ${p.position || 'Finance Professional'}
-Company: ${p.company || 'the firm'}
-Field: ${p.field || 'Finance'}
-Location: ${p.location || ''}
-Type: ${p.isJob ? 'Posted internship role — apply directly' : 'Unofficial cold outreach — no role posted'}
-${p.type==='connection'?'NOTE: This person is already a LinkedIn connection — tone can be slightly warmer.':''}
+Title: ${p.position||'Finance Professional'}
+Company: ${p.company||'the firm'}
+Field: ${p.field||'Finance'}
+Location: ${p.location||''}
+Type: ${p.isJob?'Posted role — express direct interest':'Cold outreach — no posted role'}
+${p.type==='connection'?'Already a LinkedIn connection — slightly warmer tone is fine.':''}
+${needsReloc?'NOTE: This is a relocation opportunity — subtly mention openness to relocating.':''}
+${hasHousing?'NOTE: This firm is known to offer housing stipends for interns.':''}
 
-Instructions:
+Rules:
 - 150–180 words max
-- Open with something specific about them or their firm (not a generic opener)
-- Mention ONE skill or achievement from the CV most relevant to their field
-- If unofficial: ask for a 15-minute exploratory call, not "do you have internships"
-- If posted job: express specific interest in the role and firm
-- Sound like a real, smart person — not corporate fluff
-- Close with a clear, low-friction ask
+- Open with something specific about them or their firm, not generic
+- Mention ONE skill or achievement from the CV relevant to their field
+- If unofficial: ask for 15-minute exploratory call, not "do you have internships"
+- Sound human and direct — not corporate
+- Clear, low-friction close
 
-Return ONLY this JSON, no markdown:
-{
-  "subject": "email subject line",
-  "body": "full email body only, no subject in body, sign off with ${name}"
-}`;
-
-    const res = await claude(prompt);
+Return ONLY this JSON:
+{"subject":"subject line","body":"full email body, sign off with ${name}"}`);
     let draft;
-    try {
-      const m = res.match(/\{[\s\S]*\}/);
-      draft = JSON.parse(m ? m[0] : res);
-    } catch {
-      draft = { subject:`Finance Inquiry — ${name}`, body: res };
-    }
+    try { const m=res.match(/\{[\s\S]*\}/); draft=JSON.parse(m?m[0]:res); }
+    catch { draft={subject:`Finance Inquiry — ${name}`,body:res}; }
 
-    const key = dKey(p);
-    drafts[key] = { ...draft, prospect: p, timestamp: Date.now() };
-    localStorage.setItem('finley_drafts', JSON.stringify(drafts));
+    const key=dKey(p);
+    drafts[key]={...draft,prospect:p,timestamp:Date.now()};
+    localStorage.setItem('finley_drafts',JSON.stringify(drafts));
 
-    // Track contact
-    if(!contacts.find(c => c.name===p.name && c.company===p.company)){
-      contacts.push({
-        id: Date.now(), name:p.name, company:p.company||'', position:p.position||'',
-        field:p.field||'', location:p.location||'', url:p.url||'',
-        status:'drafted', dateAdded:today(), dateSent:'', notes:'',
-      });
+    if(!contacts.find(c=>c.name===p.name&&c.company===p.company)){
+      contacts.push({id:Date.now(),name:p.name,company:p.company||'',position:p.position||'',
+        field:p.field||'',location:p.location||'',url:p.url||'',status:'drafted',
+        dateAdded:today(),dateSent:'',notes:'',needsReloc});
       saveContacts();
     }
-
-    renderProspects();
-    renderOutreach();
-    renderTracker();
-    updateCounts();
-    toast('Email drafted — review in Outreach tab');
-  } catch(e){
-    toast('Error drafting: ' + e.message);
-  }
+    renderProspects(); renderOutreach(); renderTracker(); updateCounts();
+    toast('Email drafted — check Outreach tab');
+  } catch(e){ toast('Error: '+e.message); }
 }
 
 // ── OUTREACH ──────────────────────────────────────────────────────────
@@ -750,29 +1009,35 @@ function renderOutreach(){
     panel.innerHTML = `<div class="empty-state"><div class="empty-icon">✉️</div><div class="empty-label">Click "Draft Email" on a prospect to generate a personalised email</div></div>`;
     return;
   }
-  const userName = localStorage.getItem('finley_name') || 'Nigel Ellison';
-  panel.innerHTML = entries.sort((a,b) => b[1].timestamp-a[1].timestamp).map(([key, d]) => {
-    const p       = d.prospect || {};
-    const contact = contacts.find(c => c.name===p.name && c.company===p.company);
-    const status  = contact?.status || 'drafted';
-    const mailSub = encodeURIComponent(d.subject || `Finance Internship Inquiry — ${userName}`);
-    const mailBod = encodeURIComponent((d.body || '') + `\n\nBest regards,\n${userName}`);
-    const mailto  = `mailto:${p.email||''}?subject=${mailSub}&body=${mailBod}`;
-    return `<div class="email-block" id="eb-${btoa(key).replace(/=/g,'')}">
-      <div class="email-to-header">
+  const userName = localStorage.getItem('finley_name')||'Nigel Ellison';
+  panel.innerHTML = entries.sort((a,b)=>b[1].timestamp-a[1].timestamp).map(([key,d]) => {
+    const p=d.prospect||{};
+    const contact=contacts.find(c=>c.name===p.name&&c.company===p.company);
+    const status=contact?.status||'drafted';
+    const mailSub=encodeURIComponent(d.subject||`Finance Internship Inquiry — ${userName}`);
+    const mailBod=encodeURIComponent((d.body||'')+`\n\nBest regards,\n${userName}`);
+    const mailto=`mailto:${p.email||''}?subject=${mailSub}&body=${mailBod}`;
+    return `<div class="email-block">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
         <div>
           <div style="font-size:15px;font-weight:600">${p.name||'Unknown'}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.position||''} · ${p.company||''} ${p.location?'· '+p.location:''}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">
+            ${(p.badges||[]).map(b=>
+              b==='Housing Aid'?`<span class="badge badge-green">${b}</span>`:
+              b==='Relocation Needed'?`<span class="badge badge-amber">${b}</span>`:
+              `<span class="badge badge-gray">${b}</span>`
+            ).join('')}
+          </div>
         </div>
         <span class="badge ${statusBadgeClass(status)}">${status}</span>
       </div>
-      <div style="margin-bottom:14px">
-        <div class="field-label" style="margin-bottom:6px">Subject</div>
-        <input type="text" value="${esc(d.subject||'')}"
-          oninput="saveDraftField('${key}','subject',this.value)">
+      <div class="field-group">
+        <div class="field-label">Subject</div>
+        <input type="text" value="${esc(d.subject||'')}" oninput="saveDraftField('${key}','subject',this.value)">
       </div>
-      <div>
-        <div class="field-label" style="margin-bottom:6px">Email Body — edit freely before sending</div>
+      <div class="field-group">
+        <div class="field-label">Email Body — edit freely before sending</div>
         <textarea rows="10" oninput="saveDraftField('${key}','body',this.value)">${esc(d.body||'')}</textarea>
       </div>
       <div class="email-actions">
@@ -791,125 +1056,131 @@ function renderOutreach(){
 }
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
-
-function saveDraftField(key, field, val){
-  if(drafts[key]){ drafts[key][field]=val; localStorage.setItem('finley_drafts',JSON.stringify(drafts)); }
+function saveDraftField(key,field,val){ if(drafts[key]){drafts[key][field]=val;localStorage.setItem('finley_drafts',JSON.stringify(drafts));} }
+function markSent(key){ setStatus(key,'sent'); renderOutreach(); }
+function setStatus(key,status){
+  const d=drafts[key]; if(!d) return;
+  const c=contacts.find(c=>c.name===d.prospect?.name&&c.company===d.prospect?.company);
+  if(c){c.status=status;if(status==='sent')c.dateSent=today();saveContacts();}
+  renderTracker(); updateCounts();
 }
-
-function markSent(key){
-  setStatus(key,'sent');
-  renderOutreach();
-}
-
-function setStatus(key, status){
-  const d = drafts[key];
-  if(!d) return;
-  const c = contacts.find(c => c.name===d.prospect?.name && c.company===d.prospect?.company);
-  if(c){ c.status=status; if(status==='sent') c.dateSent=today(); saveContacts(); }
-  renderTracker();
-  updateCounts();
-}
-
 function deleteDraft(key){
   if(!confirm('Delete this draft?')) return;
   delete drafts[key];
   localStorage.setItem('finley_drafts',JSON.stringify(drafts));
-  renderOutreach();
-  updateCounts();
+  renderOutreach(); updateCounts();
 }
 
 // ── TRACKER ───────────────────────────────────────────────────────────
 function renderTracker(){
-  const wrap = document.getElementById('tracker-wrap');
+  const wrap=document.getElementById('tracker-wrap');
   if(!contacts.length){
-    wrap.innerHTML = `<div class="empty-state" style="padding:40px 0"><div class="empty-icon">📋</div><div class="empty-label">No contacts tracked yet</div></div>`;
+    wrap.innerHTML=`<div class="empty-state" style="padding:40px 0"><div class="empty-icon">📋</div><div class="empty-label">No contacts tracked yet</div></div>`;
     return;
   }
-  wrap.innerHTML = `<table>
-    <thead><tr>
-      <th>Name</th><th>Company</th><th>Field</th><th>Location</th>
-      <th>Status</th><th>Added</th><th>Sent</th><th>Notes</th><th></th>
-    </tr></thead>
+  wrap.innerHTML=`<table>
+    <thead><tr><th>Name</th><th>Company</th><th>Field</th><th>Location</th><th>Reloc?</th><th>Status</th><th>Added</th><th>Sent</th><th>Notes</th><th></th></tr></thead>
     <tbody>${contacts.map((c,i)=>`<tr>
       <td>${c.url?`<a href="${c.url}" target="_blank">${c.name}</a>`:c.name}</td>
-      <td>${c.company||'—'}</td>
-      <td>${c.field||'—'}</td>
-      <td>${c.location||'—'}</td>
+      <td>${c.company||'—'}</td><td>${c.field||'—'}</td><td>${c.location||'—'}</td>
+      <td>${c.needsReloc?'<span class="badge badge-amber">Yes</span>':'—'}</td>
       <td><span class="badge ${statusBadgeClass(c.status)}">${c.status}</span></td>
       <td style="color:var(--muted)">${c.dateAdded||'—'}</td>
       <td style="color:var(--muted)">${c.dateSent||'—'}</td>
-      <td><input class="note-input" value="${esc(c.notes||'')}" placeholder="Add note..."
-        onblur="updateNote(${i},this.value)"></td>
+      <td><input class="note-input" value="${esc(c.notes||'')}" placeholder="Add note..." onblur="updateNote(${i},this.value)"></td>
       <td><button class="btn btn-sm btn-danger" onclick="removeContact(${i})">✕</button></td>
-    </tr>`).join('')}
-    </tbody>
+    </tr>`).join('')}</tbody>
   </table>`;
 }
 
-function updateNote(i, val){ contacts[i].notes=val; saveContacts(); }
-function removeContact(i){ contacts.splice(i,1); saveContacts(); renderTracker(); updateCounts(); }
-function saveContacts(){ localStorage.setItem('finley_contacts',JSON.stringify(contacts)); }
-function clearTracker(){ if(confirm('Clear all contacts?')){ contacts=[]; saveContacts(); renderTracker(); updateCounts(); } }
+function updateNote(i,val){contacts[i].notes=val;saveContacts();}
+function removeContact(i){contacts.splice(i,1);saveContacts();renderTracker();updateCounts();}
+function saveContacts(){localStorage.setItem('finley_contacts',JSON.stringify(contacts));}
+function clearTracker(){if(confirm('Clear all contacts?')){contacts=[];saveContacts();renderTracker();updateCounts();}}
 
 function exportCSV(){
-  const h = ['Name','Company','Field','Location','Status','Date Added','Date Sent','LinkedIn','Notes'];
-  const r = contacts.map(c=>[c.name,c.company,c.field,c.location,c.status,c.dateAdded,c.dateSent,c.url,c.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
-  const csv = [h,...r].map(x=>x.join(',')).join('\n');
-  const a = Object.assign(document.createElement('a'),{
-    href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})),
-    download:'finley-contacts.csv',
-  });
+  const h=['Name','Company','Field','Location','Relocation Needed','Status','Date Added','Date Sent','LinkedIn','Notes'];
+  const r=contacts.map(c=>[c.name,c.company,c.field,c.location,c.needsReloc?'Yes':'No',c.status,c.dateAdded,c.dateSent,c.url,c.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
+  const csv=[h,...r].map(x=>x.join(',')).join('\n');
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:'finley-contacts.csv'});
   a.click();
+}
+
+// ── LINKEDIN IMPORT ───────────────────────────────────────────────────
+function importConnections(){
+  const raw=document.getElementById('li-csv').value.trim();
+  if(!raw) return;
+  const lines=raw.split('\n').filter(l=>l.trim());
+  let parsed=[];
+  if(lines[0]&&lines[0].includes(',')){
+    const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+    const fi=headers.findIndex(h=>h.includes('first'));
+    const li2=headers.findIndex(h=>h.includes('last'));
+    const co=headers.findIndex(h=>h.includes('company'));
+    const po=headers.findIndex(h=>h.includes('position')||h.includes('title'));
+    const ur=headers.findIndex(h=>h.includes('url'));
+    const em=headers.findIndex(h=>h.includes('email'));
+    for(let i=1;i<lines.length;i++){
+      const c=lines[i].split(',').map(x=>x.replace(/"/g,'').trim());
+      parsed.push({name:((fi>=0?c[fi]:'')+' '+(li2>=0?c[li2]:'')).trim()||c[0]||'',
+        company:co>=0?c[co]:'',position:po>=0?c[po]:'',url:ur>=0?c[ur]:'',email:em>=0?c[em]:'',source:'import'});
+    }
+  } else {
+    parsed=lines.map(l=>({name:l.startsWith('http')?l.replace(/.*\/in\//,'').replace(/\//,'').replace(/-/g,' '):l,url:l.startsWith('http')?l:'',source:'import'}));
+  }
+  liConnections=parsed.filter(p=>p.name&&p.name.length>1);
+  localStorage.setItem('finley_connections',JSON.stringify(liConnections));
+  const kwds=['finance','banking','investment','capital','asset','equity','fund','trading','wealth','financial','analyst','associate','portfolio','hedge','venture','advisor'];
+  const relevant=liConnections.filter(c=>kwds.some(k=>(c.position+' '+c.company).toLowerCase().includes(k)));
+  document.getElementById('li-status').innerHTML=`<span style="color:var(--green)">✓ ${liConnections.length} imported</span>`;
+  document.getElementById('connections-summary').innerHTML=`<div style="font-size:12px;color:var(--muted)">${liConnections.length} total · <span style="color:var(--gold)">${relevant.length} appear to be in finance</span></div>`;
+  setupStep.connections=true;
+  updateAccordion('acc-connections',true,`${liConnections.length} connections`);
+  updateSetupGate();
 }
 
 // ── CLAUDE ────────────────────────────────────────────────────────────
 async function claude(prompt){
-  const r = await fetch('https://api.anthropic.com/v1/messages',{
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{
-      'x-api-key':ANT_KEY,
-      'anthropic-version':'2023-06-01',
-      'content-type':'application/json',
-      'anthropic-dangerous-direct-browser-access':'true',
-    },
-    body:JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1024, messages:[{role:'user',content:prompt}] }),
+    headers:{'x-api-key':ANT_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1024,messages:[{role:'user',content:prompt}]}),
   });
-  const d = await r.json();
+  const d=await r.json();
   if(d.error) throw new Error(d.error.message);
   return d.content[0].text;
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────
 function switchTab(tab){
+  const locked=document.querySelector(`.nav-tab[data-tab="${tab}"].locked`);
+  if(locked){ toast('Complete Setup first — analyze your CV and save your details'); return; }
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.querySelector(`.nav-tab[data-tab="${tab}"]`)?.classList.add('active');
+  if(tab==='search') updateRelocBanner();
 }
 
 function updateCounts(){
-  const nc = (id, n) => {
-    const el = document.getElementById(id);
-    el.textContent = n;
-    el.style.display = n ? 'inline' : 'none';
-  };
-  nc('nc-prospects', searchResults.length);
-  nc('nc-outreach',  Object.keys(drafts).length);
-  nc('nc-tracker',   contacts.length);
+  const nc=(id,n)=>{const el=document.getElementById(id);el.textContent=n;el.style.display=n?'inline':'none';};
+  nc('nc-prospects',searchResults.length);
+  nc('nc-outreach',Object.keys(drafts).length);
+  nc('nc-tracker',contacts.length);
 }
 
 function statusBadgeClass(s){
-  return {drafted:'badge-gold',sent:'badge-green',replied:'badge-blue','no-response':'badge-red'}[s]||'badge-gray';
+  return{drafted:'badge-gold',sent:'badge-green',replied:'badge-blue','no-response':'badge-red'}[s]||'badge-gray';
 }
 
-function today(){ return new Date().toISOString().split('T')[0]; }
+function today(){return new Date().toISOString().split('T')[0];}
 
 let _tt;
 function toast(msg){
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.opacity='1';
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.opacity='1';
   clearTimeout(_tt);
-  _tt = setTimeout(()=>{ el.style.opacity='0'; }, 3000);
+  _tt=setTimeout(()=>{el.style.opacity='0';},3000);
 }
 </script>
 </body>
