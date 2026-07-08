@@ -126,6 +126,7 @@ select{cursor:pointer;width:100%}
 .p-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:.15s}
 .p-card:hover{border-color:var(--gold-mid)}
 .p-avatar{width:42px;height:42px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--gold);flex-shrink:0}
+.link-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 8px;background:var(--s3);border:1px solid var(--border);border-radius:5px;color:var(--muted);text-decoration:none;white-space:nowrap;transition:.12s}.link-chip:hover{border-color:var(--gold);color:var(--gold)}
 
 /* EMAIL */
 .email-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px}
@@ -922,6 +923,68 @@ async function searchLinkedInPeople(field, location){
   }).filter(p => p.name && p.name !== 'Unknown');
 }
 
+// ── COMPANY RESEARCH (Google via RapidAPI) ────────────────────────────
+const researchCache = {};
+
+async function fetchCompanyResearch(company, field){
+  const key = (company+'||'+field).toLowerCase();
+  if(researchCache[key]) return researchCache[key];
+  const q = `${company} ${field} internship program site:glassdoor.com OR site:linkedin.com OR site:indeed.com OR site:${company.toLowerCase().replace(/\s+/g,'')}.com`;
+  try {
+    const r = await fetch(`https://real-time-web-search.p.rapidapi.com/search?q=${encodeURIComponent(q)}&limit=5`, {
+      headers:{ 'x-rapidapi-host':'real-time-web-search.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+    });
+    if(!r.ok) throw new Error('search failed');
+    const d = await r.json();
+    const results = (d.data||d.results||[]).slice(0,5).map(x=>({ title:x.title||x.snippet, url:x.url||x.link, snippet:x.body||x.description||'' }));
+    researchCache[key] = results;
+    return results;
+  } catch(e){
+    // Fallback: construct useful links without API
+    return buildFallbackLinks(company, field);
+  }
+}
+
+function buildFallbackLinks(company, field){
+  const enc = encodeURIComponent(company);
+  const encF = encodeURIComponent(company + ' ' + field + ' internship');
+  return [
+    { title:`${company} — LinkedIn Company Page`,   url:`https://www.linkedin.com/company/${company.toLowerCase().replace(/\s+/g,'-')}`,         snippet:'View employees, culture, and internship postings on LinkedIn.' },
+    { title:`${company} internships — Glassdoor`,   url:`https://www.glassdoor.com/Search/Results.htm?keyword=${enc}+internship`,                 snippet:'Salary data, interview reviews, and intern experiences.' },
+    { title:`${company} ${field} jobs — Indeed`,    url:`https://www.indeed.com/jobs?q=${encF}`,                                                   snippet:'Internship and entry-level postings from this company.' },
+    { title:`Google: ${company} finance internship`,url:`https://www.google.com/search?q=${encodeURIComponent(company+' finance internship 2025 2026')}`, snippet:'Google results including news, press, and program pages.' },
+    { title:`${company} — Handshake`,               url:`https://joinhandshake.com/search?query=${enc}&category=Jobs`,                             snippet:'Internship listings on Handshake, popular with university recruiting.' },
+  ];
+}
+
+function linkDomain(url){ try{ return new URL(url).hostname.replace('www.',''); } catch{ return url; } }
+
+async function toggleResearch(i){
+  const el = document.getElementById(`research-${i}`);
+  if(!el) return;
+  if(el.style.display !== 'none'){ el.style.display='none'; return; }
+  el.style.display = 'block';
+  if(el.dataset.loaded) return;
+  const p = searchResults[i];
+  if(!p) return;
+  el.dataset.loaded = '1';
+  el.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px 0"><span class="spinner"></span> Researching ${p.company||p.name}...</div>`;
+  const links = await fetchCompanyResearch(p.company || p.name, p.field||'finance');
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Company Research</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${links.map(l=>`
+        <a href="${l.url}" target="_blank" rel="noopener" style="display:block;padding:8px 10px;background:var(--s2);border:1px solid var(--border);border-radius:7px;text-decoration:none;transition:.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <img src="https://www.google.com/s2/favicons?domain=${linkDomain(l.url)}&sz=16" width="14" height="14" onerror="this.style.display='none'">
+            <span style="font-size:12px;font-weight:600;color:var(--gold)">${esc(l.title)}</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--muted)">${linkDomain(l.url)} ↗</span>
+          </div>
+          ${l.snippet?`<div style="font-size:11px;color:var(--muted);line-height:1.4">${esc(l.snippet.substring(0,100))}${l.snippet.length>100?'...':''}</div>`:''}
+        </a>`).join('')}
+    </div>`;
+}
+
 // ── PROSPECTS ─────────────────────────────────────────────────────────
 function renderProspects(){
   const panel = document.getElementById('prospects-panel');
@@ -934,31 +997,59 @@ function renderProspects(){
     const hasDraft = !!drafts[dKey(p)];
     const contact  = contacts.find(c => c.name===p.name&&c.company===p.company);
     const status   = contact?.status||'';
+
+    // Build verifiable links bar
+    const company  = p.company || p.name;
+    const encComp  = encodeURIComponent(company);
+    const encRole  = encodeURIComponent(company + ' ' + (p.field||'finance') + ' internship');
+    const liCoLink = `https://www.linkedin.com/company/${company.toLowerCase().replace(/\s+/g,'-')}`;
+    const glLink   = `https://www.glassdoor.com/Search/Results.htm?keyword=${encComp}`;
+    const indLink  = `https://www.indeed.com/jobs?q=${encRole}`;
+    const ggLink   = `https://www.google.com/search?q=${encodeURIComponent(company+' finance internship 2025 2026')}`;
+
     return `<div class="p-card">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
         <div class="p-avatar">${initials}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:600">${p.name}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.position||''}${p.company?' · '+p.company:''}</div>
-          ${p.location?`<div style="font-size:11px;color:var(--subtle);margin-top:2px">${p.location}</div>`:''}
+          <div style="font-size:14px;font-weight:600">${p.url?`<a href="${esc(p.url)}" target="_blank" style="color:var(--text)">${esc(p.name)}</a>`:esc(p.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(p.position||'')}${p.company?' · '+esc(p.company):''}</div>
+          ${p.location?`<div style="font-size:11px;color:var(--subtle);margin-top:2px">📍 ${esc(p.location)}</div>`:''}
         </div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
-        <span class="badge badge-gold">${p.field||'Finance'}</span>
+
+      <!-- Badges -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+        <span class="badge badge-gold">${esc(p.field||'Finance')}</span>
         ${(p.badges||[]).map(b =>
-          b==='Your Connection'?`<span class="badge badge-blue">${b}</span>`:
-          b==='Housing Aid'?`<span class="badge badge-green">${b}</span>`:
-          b==='Relocation Needed'?`<span class="badge badge-amber">${b}</span>`:
-          b==='Posted Job'?`<span class="badge badge-gray">${b}</span>`:
+          b==='Your Connection'?`<span class="badge badge-blue">🤝 ${b}</span>`:
+          b==='Housing Aid'?`<span class="badge badge-green">🏠 ${b}</span>`:
+          b==='Relocation Needed'?`<span class="badge badge-amber">✈️ ${b}</span>`:
+          b==='Posted Job'?`<span class="badge badge-blue">📋 ${b}</span>`:
           `<span class="badge badge-gray">${b}</span>`
         ).join('')}
-        ${hasDraft?'<span class="badge badge-gold">Draft ready</span>':''}
+        ${hasDraft?'<span class="badge badge-gold">✓ Draft ready</span>':''}
         ${status?`<span class="badge ${statusBadgeClass(status)}">${status}</span>`:''}
       </div>
-      ${p.url?`<div style="margin-bottom:12px;font-size:12px"><a href="${p.url}" target="_blank">View LinkedIn ↗</a></div>`:''}
+
+      <!-- Quick links bar -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;padding:8px;background:var(--s2);border-radius:7px;border:1px solid var(--border)">
+        ${p.url?`<a href="${esc(p.url)}" target="_blank" class="link-chip"><img src="https://www.google.com/s2/favicons?domain=linkedin.com&sz=14" width="12" height="12"> LinkedIn Profile</a>`:''}
+        <a href="${liCoLink}" target="_blank" class="link-chip"><img src="https://www.google.com/s2/favicons?domain=linkedin.com&sz=14" width="12" height="12"> Company Page</a>
+        <a href="${glLink}" target="_blank" class="link-chip"><img src="https://www.google.com/s2/favicons?domain=glassdoor.com&sz=14" width="12" height="12"> Glassdoor</a>
+        <a href="${indLink}" target="_blank" class="link-chip"><img src="https://www.google.com/s2/favicons?domain=indeed.com&sz=14" width="12" height="12"> Indeed</a>
+        <a href="${ggLink}" target="_blank" class="link-chip">🔍 Google</a>
+        ${p.url && p.isJob ? `<a href="${esc(p.url)}" target="_blank" class="link-chip" style="background:var(--gold-dim);color:var(--gold);font-weight:600">📋 Apply</a>` : ''}
+      </div>
+
+      <!-- Research panel (lazy loaded) -->
+      <div id="research-${i}" style="display:none;margin-bottom:10px;padding:10px;background:var(--s2);border-radius:7px;border:1px solid var(--border)"></div>
+
+      <!-- Actions -->
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm ${hasDraft?'':'btn-primary'}" onclick="draftEmail(${i})">${hasDraft?'Regenerate':'Draft Email'}</button>
+        <button class="btn btn-sm ${hasDraft?'':'btn-primary'}" onclick="draftEmail(${i})">${hasDraft?'Regenerate Email':'Draft Email'}</button>
         ${hasDraft?`<button class="btn btn-sm" onclick="switchTab('outreach')">View Draft</button>`:''}
+        <button class="btn btn-sm btn-ghost" onclick="toggleResearch(${i})" style="margin-left:auto">🔍 Research</button>
       </div>
     </div>`;
   }).join('')}</div>`;
