@@ -339,10 +339,64 @@ tr:hover td{background:var(--s2)}
         </div>
       </div>
 
-      <div id="setup-complete-banner" style="display:none;margin-top:4px">
-        <div class="housing-note" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-          <span>✓ Setup complete — all tabs are unlocked.</span>
-          <button class="btn btn-primary" onclick="switchTab('search')">Go to Search →</button>
+      <!-- Submit gate: shown only when all 3 done but not yet submitted -->
+      <div id="setup-submit-gate" style="display:none;margin-top:8px">
+        <div style="background:var(--gold-dim);border:1px solid var(--gold-mid);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--gold)">All 3 steps complete — ready to launch</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Hit Submit to unlock Search, Prospects, Outreach and Tracker.</div>
+          </div>
+          <button class="btn btn-primary" style="padding:12px 32px;font-size:15px;font-weight:700" onclick="submitSetup()">Submit Setup →</button>
+        </div>
+      </div>
+
+      <!-- Profile card: shown after submit -->
+      <div id="profile-card" style="display:none;margin-top:8px">
+        <div style="background:var(--surface);border:1px solid var(--green);border-radius:12px;padding:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)" onclick="toggleAcc('acc-profile')" style="cursor:pointer">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--green-dim,rgba(46,204,113,.12));display:flex;align-items:center;justify-content:center;font-size:16px">✓</div>
+              <div>
+                <div style="font-weight:700;color:var(--green)">Setup Complete</div>
+                <div style="font-size:12px;color:var(--muted)" id="profile-summary-line">All tabs unlocked</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-sm" onclick="event.stopPropagation();editProfile()">Edit Profile</button>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();switchTab('search')">Go to Search →</button>
+            </div>
+          </div>
+          <div id="acc-profile-body" style="display:none;padding:16px 20px">
+            <!-- Editable profile fields -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="profile-fields">
+              <div class="field-group">
+                <div class="field-label">Full Name</div>
+                <input type="text" id="edit-name" placeholder="Nigel Ellison">
+              </div>
+              <div class="field-group">
+                <div class="field-label">Email</div>
+                <input type="email" id="edit-email">
+              </div>
+              <div class="field-group">
+                <div class="field-label">LinkedIn URL</div>
+                <input type="text" id="edit-linkedin">
+              </div>
+              <div class="field-group">
+                <div class="field-label">Hometown / City</div>
+                <input type="text" id="edit-hometown" placeholder="Dallas, TX">
+              </div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+              <button class="btn btn-primary" onclick="saveProfileEdit()">Save Changes</button>
+              <button class="btn btn-sm btn-ghost" onclick="resetSetup()">Reset Setup</button>
+              <div id="profile-edit-status" class="status-row"></div>
+            </div>
+            <!-- API status -->
+            <div id="api-status-panel" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">API Health</div>
+              <div id="api-checks" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -494,7 +548,8 @@ let cvAnalysis        = JSON.parse(localStorage.getItem('finley_cv_analysis') ||
 let liConnections     = JSON.parse(localStorage.getItem('finley_connections') || '[]');
 let drafts            = JSON.parse(localStorage.getItem('finley_drafts') || '{}');
 let cvMode            = 'paste';
-let setupStep         = { cv: !!cvAnalysis, details: !!(localStorage.getItem('finley_email')), connections: false };
+let setupDone         = !!(localStorage.getItem('finley_setup_done'));
+let setupStep         = { cv: !!cvAnalysis, details: !!(localStorage.getItem('finley_email')), connections: liConnections.length > 0 };
 
 // ── AUTH ──────────────────────────────────────────────────────────────
 document.getElementById('pass-in').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -721,28 +776,180 @@ function saveDetails(){
 
 // ── SETUP GATE ────────────────────────────────────────────────────────
 function updateSetupGate(){
-  const done  = setupStep.cv && setupStep.details;
-  const count = [setupStep.cv, setupStep.details, setupStep.connections].filter(Boolean).length;
-  const pct   = Math.round((count/3)*100);
+  const allThree = setupStep.cv && setupStep.details && setupStep.connections;
+  const count    = [setupStep.cv, setupStep.details, setupStep.connections].filter(Boolean).length;
+  const pct      = Math.round((count / 3) * 100);
 
   document.getElementById('setup-progress-label').textContent = `Setup ${count}/3`;
-  document.getElementById('setup-progress-fill').style.width = pct + '%';
+  document.getElementById('setup-progress-fill').style.width  = pct + '%';
 
   const tabs = ['search','prospects','outreach','tracker'];
   tabs.forEach(tab => {
     const el = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
     if(!el) return;
-    if(done){
+    if(setupDone){
       el.classList.remove('locked');
       el.removeAttribute('data-tip');
     } else {
       el.classList.add('locked');
-      el.setAttribute('data-tip', 'Complete CV analysis + save details first');
+      el.setAttribute('data-tip', count < 3 ? `Complete all 3 setup steps (${count}/3 done)` : 'Hit Submit Setup to unlock all tabs');
     }
   });
 
-  const banner = document.getElementById('setup-complete-banner');
-  if(banner) banner.style.display = done ? 'block' : 'none';
+  // Show submit gate only when all 3 done but not yet submitted
+  const gate = document.getElementById('setup-submit-gate');
+  if(gate) gate.style.display = (!setupDone && allThree) ? 'block' : 'none';
+
+  // Show profile card if already submitted
+  const card = document.getElementById('profile-card');
+  if(card) card.style.display = setupDone ? 'block' : 'none';
+
+  if(setupDone) renderProfileSummary();
+}
+
+function submitSetup(){
+  setupDone = true;
+  localStorage.setItem('finley_setup_done', '1');
+  updateSetupGate();
+  checkAllAPIs();
+  // Collapse all accordions
+  ['acc-cv','acc-details','acc-connections'].forEach(id => {
+    const body = document.getElementById(id+'-body');
+    const chev = document.getElementById(id+'-chev');
+    if(body){ body.classList.remove('open'); }
+    if(chev){ chev.textContent = '▶'; }
+  });
+  toast('Setup complete — all tabs are now unlocked!');
+  setTimeout(() => switchTab('search'), 800);
+}
+
+function renderProfileSummary(){
+  const name     = localStorage.getItem('finley_name')     || 'Nigel Ellison';
+  const email    = localStorage.getItem('finley_email')    || '';
+  const hometown = localStorage.getItem('finley_hometown') || '';
+  const connCt   = liConnections.length;
+  const line     = `${name} · ${email}${hometown ? ' · ' + hometown : ''} · ${connCt} connections`;
+  const el = document.getElementById('profile-summary-line');
+  if(el) el.textContent = line;
+  // Populate edit fields
+  const setVal = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
+  setVal('edit-name',     name);
+  setVal('edit-email',    email);
+  setVal('edit-linkedin', localStorage.getItem('finley_linkedin') || '');
+  setVal('edit-hometown', hometown);
+}
+
+function editProfile(){
+  const body = document.getElementById('acc-profile-body');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(!open) checkAllAPIs();
+}
+
+function saveProfileEdit(){
+  const name     = document.getElementById('edit-name').value.trim();
+  const email    = document.getElementById('edit-email').value.trim();
+  const li       = document.getElementById('edit-linkedin').value.trim();
+  const hometown = document.getElementById('edit-hometown').value.trim();
+  if(!email) return toast('Email is required');
+  localStorage.setItem('finley_name',     name);
+  localStorage.setItem('finley_email',    email);
+  localStorage.setItem('finley_linkedin', li);
+  localStorage.setItem('finley_hometown', hometown);
+  // Sync back to setup fields too
+  const setVal = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
+  setVal('user-name', name); setVal('user-email', email);
+  setVal('user-linkedin', li); setVal('user-hometown', hometown);
+  renderProfileSummary();
+  updateRelocBanner();
+  document.getElementById('profile-edit-status').innerHTML = '<span style="color:var(--green)">✓ Saved</span>';
+  setTimeout(() => { const s = document.getElementById('profile-edit-status'); if(s) s.innerHTML = ''; }, 2000);
+  toast('Profile updated');
+}
+
+function resetSetup(){
+  if(!confirm('Reset all setup data? This will lock the tabs again.')) return;
+  localStorage.removeItem('finley_setup_done');
+  setupDone = false;
+  setupStep = { cv: false, details: false, connections: false };
+  updateSetupGate();
+  ['acc-cv','acc-details','acc-connections'].forEach(id => {
+    const body = document.getElementById(id+'-body');
+    const chev = document.getElementById(id+'-chev');
+    if(body){ body.classList.add('open'); }
+    if(chev){ chev.textContent = '▼'; }
+  });
+  document.getElementById('acc-profile-body').style.display = 'none';
+  toast('Setup reset — please complete all 3 steps again');
+}
+
+// ── API HEALTH CHECK ──────────────────────────────────────────────────
+async function checkAllAPIs(){
+  const panel = document.getElementById('api-checks');
+  if(!panel) return;
+  const checks = [
+    { name:'Anthropic (Claude)',    fn: checkClaude  },
+    { name:'JSearch — Posted Jobs', fn: checkJSearch },
+    { name:'LinkedIn People',       fn: checkLinkedIn},
+    { name:'Web Research Search',   fn: checkWebSearch},
+  ];
+  panel.innerHTML = checks.map(c =>
+    `<div id="apicheck-${c.name.replace(/\W/g,'')}" style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;background:var(--s2);border-radius:6px;border:1px solid var(--border)">
+      <span class="spinner"></span><span style="color:var(--muted)">${c.name}</span>
+    </div>`).join('');
+  for(const c of checks){
+    const id  = 'apicheck-'+c.name.replace(/\W/g,'');
+    const el  = document.getElementById(id);
+    try {
+      const ms = await c.fn();
+      if(el) el.innerHTML = `<span style="color:var(--green)">✓</span><span>${c.name}</span><span style="margin-left:auto;color:var(--muted)">${ms}ms</span>`;
+    } catch(e){
+      if(el) el.innerHTML = `<span style="color:var(--red)">✗</span><span>${c.name}</span><span style="margin-left:auto;color:var(--red);font-size:11px">${e.message}</span>`;
+    }
+  }
+}
+
+async function checkClaude(){
+  const t = Date.now();
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'x-api-key':ANT_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+    body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:10, messages:[{role:'user',content:'Hi'}] })
+  });
+  if(!r.ok){ const d=await r.json(); throw new Error(d.error?.message||`HTTP ${r.status}`); }
+  return Date.now()-t;
+}
+
+async function checkJSearch(){
+  const t = Date.now();
+  const r = await fetch('https://jsearch.p.rapidapi.com/search?query=finance+internship&page=1&num_pages=1', {
+    headers:{ 'x-rapidapi-host':'jsearch.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  if(d.status==='ERROR') throw new Error(d.error?.message||'API error');
+  return Date.now()-t;
+}
+
+async function checkLinkedIn(){
+  const t = Date.now();
+  const r = await fetch('https://linkedin-api8.p.rapidapi.com/search-people?keywords=finance+intern&page=1', {
+    headers:{ 'x-rapidapi-host':'linkedin-api8.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  await r.json();
+  return Date.now()-t;
+}
+
+async function checkWebSearch(){
+  const t = Date.now();
+  const r = await fetch('https://real-time-web-search.p.rapidapi.com/search?q=goldman+sachs+internship&limit=2', {
+    headers:{ 'x-rapidapi-host':'real-time-web-search.p.rapidapi.com','x-rapidapi-key':RAPIDAPI_KEY }
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  await r.json();
+  return Date.now()-t;
 }
 
 // ── PILLS ─────────────────────────────────────────────────────────────
